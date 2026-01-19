@@ -82,16 +82,64 @@ function saveConfig() {
     });
 }
 
-function recordSat(id, name, durationSeconds) {
-    if (!confirm(`Start recording for ${name} (${durationSeconds}s)? This will send the configured SSH command.`)) return;
+// Global set of scheduled job IDs (constructed client-side from server check or local interactions)
+let scheduledPasses = new Set();
+
+function checkScheduledJobs() {
+    $.get('/api/scheduled', function (res) {
+        // jobs look like 'rec_SATID_TIMESTAMP'
+        scheduledPasses.clear();
+        res.jobs.forEach(jid => scheduledPasses.add(jid));
+        updateRecordButtons();
+    });
+}
+
+function updateRecordButtons() {
+    // Iterate over all record buttons to update state
+    $('.record-btn').each(function () {
+        let btnId = $(this).attr('id'); // btn-rec-25544-168...
+        if (!btnId) return;
+
+        // Extract satId and startTs from btnId
+        // Format: btn-rec-{satId}-{startTime}
+        let parts = btnId.split('-');
+        if (parts.length < 4) return;
+
+        let satId = parts[2];
+        let startTime = parts[3];
+        let jobId = `rec_${satId}_${startTime}`;
+
+        if (scheduledPasses.has(jobId)) {
+            $(this).removeClass('btn-outline-danger').addClass('btn-danger pulse-red');
+            $(this).html('<i class="fa-solid fa-stop me-2"></i> CANCEL RECORDING');
+        } else {
+            $(this).removeClass('btn-danger pulse-red').addClass('btn-outline-danger');
+            $(this).html('<i class="fa-solid fa-circle-dot me-2"></i> RECORD');
+        }
+    });
+}
+
+function recordSat(id, name, durationSeconds, startTime) {
+    // If it's already scheduled, we don't need to confirm cancellation, just do it.
+    // If it's new, maybe confirms? User said "Toggle". Let's make it quick.
 
     $.ajax({
         url: '/api/record',
         type: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify({ sat_id: id, duration: durationSeconds }),
+        data: JSON.stringify({ sat_id: id, duration: durationSeconds, start_time: startTime }),
         success: function (res) {
-            alert('Success: ' + res.message);
+            if (res.status === 'scheduled') {
+                scheduledPasses.add(res.job_id);
+                // alert('Scheduled: ' + res.message);
+                updateRecordButtons();
+            } else if (res.status === 'cancelled') {
+                scheduledPasses.delete(res.job_id);
+                // alert('Cancelled');
+                updateRecordButtons();
+            } else {
+                alert(res.message);
+            }
         },
         error: function (xhr) {
             let msg = xhr.responseJSON ? xhr.responseJSON.message : 'Unknown error';

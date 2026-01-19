@@ -1,0 +1,78 @@
+<div class="modal fade" id="troubleshootModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark border-secondary text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i
+                        class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Verbindungsprobleme beheben</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="accordion accordion-flush bg-transparent" id="troubleshootAccordion">
+
+                    <!-- Issue 1: Routing -->
+                    <div class="accordion-item bg-transparent border-secondary">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed bg-dark text-light" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#flush-collapseOne">
+                                <i class="fa-solid fa-network-wired me-2 text-info"></i> 1. Das Routing-Problem
+                                (Netzwerk-Timeout)
+                            </button>
+                        </h2>
+                        <div id="flush-collapseOne" class="accordion-collapse collapse"
+                            data-bs-parent="#troubleshootAccordion">
+                            <div class="accordion-body text-light opacity-75">
+                                <p><strong>Problem:</strong> Der Raspberry Pi (im WLAN) und der LXC-Container (im
+                                    LAN/Bridge) können sich nicht direkt "sehen". Der Pi versucht, Antworten an den LXC
+                                    über den Router zu schicken, was zu Fehlern führt (Asymmetrisches Routing).</p>
+                                <p><strong>Lösung:</strong> Eine manuelle Route auf dem Raspberry Pi setzen. Damit sagst
+                                    du dem Pi: "Pakete für den LXC (.166) schickst du direkt über dein WLAN-Interface,
+                                    ohne den Umweg über den Router."</p>
+                                <div class="bg-black p-2 rounded mb-2 font-monospace border border-secondary">
+                                    sudo ip route add 192.168.2.166 dev wlan0
+                                </div>
+                                <p class="small text-muted mb-0"><i
+                                        class="fa-solid fa-circle-info me-1"></i><strong>Dauerhafte Lösung:</strong>
+                                    Damit das nach einem Neustart bleibt, muss dies in die Netzwerkkonfiguration (z. B.
+                                    <code>/etc/dhcpcd.conf</code> oder ein Crontab-<code>@reboot</code>-Skript)
+                                    eingetragen werden.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Issue 2: SSH Fingerprint -->
+                    <div class="accordion-item bg-transparent border-secondary">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed bg-dark text-light" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#flush-collapseTwo">
+                                <i class="fa-solid fa-fingerprint me-2 text-info"></i> 2. Die SSH-Fingerprint-Blockade
+                            </button>
+                        </h2>
+                        <div id="flush-collapseTwo" class="accordion-collapse collapse"
+                            data-bs-parent="#troubleshootAccordion">
+                            <div class="accordion-body text-light opacity-75">
+                                <p><strong>Problem:</strong> <code>sshpass</code> ist ein "dummes" Tool. Es kann nur das
+                                    Passwort eintippen, aber nicht auf Sicherheitsabfragen reagieren. Wenn du dich das
+                                    erste Mal verbindest, fragt SSH: "Soll ich diesem Gerät vertrauen (yes/no)?". Da du
+                                    die Frage im Skript nicht siehst, wartet der Befehl ewig.</p>
+                                <p><strong>Lösung:</strong> Der einmalige manuelle "Handschlag". Durch das manuelle
+                                    Verbinden wird der kryptografische Fingerprint des Pi in der Datei
+                                    <code>~/.ssh/known_hosts</code> auf deinem Server gespeichert.</p>
+                                <div class="bg-black p-2 rounded mb-2 font-monospace border border-secondary">
+                                    ssh pi@192.168.2.101<br>
+                                    <span class="text-secondary"># -> mit 'yes' bestätigen</span>
+                                </div>
+                                <p class="small text-muted mb-0"><strong>Alternative:</strong> Man kann im Befehl die
+                                    Prüfung abschalten: <code>ssh -o StrictHostKeyChecking=no ...</code>. Das manuelle
+                                    Bestätigen ist jedoch der sicherere Weg.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+            </div>
+        </div>
+    </div>
+</div>

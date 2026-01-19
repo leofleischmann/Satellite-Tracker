@@ -6,6 +6,13 @@ import time
 import os
 from dateutil import parser
 from sattrack import config, tle, calculations, ssh_manager
+from apscheduler.schedulers.background import BackgroundScheduler
+
+# Scheduler init
+scheduler = BackgroundScheduler()
+scheduler.start()
+scheduled_jobs = {} # Keep track of metadata if needed
+
 
 app = Flask(__name__)
 Compress(app)  # Enable GZIP compression
@@ -23,7 +30,7 @@ _init_lock = threading.Lock()
 
 def ensure_initialized():
     """Lazy initialization - loads data on first request."""
-    global sat_config, all_sats, my_sats, calculator, _initialized
+    global sat_config, all_sats, my_sats, calculator, _initialized, app_settings
     
     if _initialized:
         return
@@ -311,22 +318,60 @@ def record_satellite():
         # Use a sensible default if missing?
         return jsonify({'success': False, 'message': 'No SSH command configured for this satellite.'}), 400
 
-    # Execute
-    mgr = ssh_manager.SSHManager()
+    # Scheduler Logic
+    start_ts_ms = data.get('start_time')
     
-    # Pass duration override
-    if duration:
+    if start_ts_ms:
+        start_time = datetime.datetime.fromtimestamp(start_ts_ms / 1000.0, tz=datetime.timezone.utc)
+        job_id = f"rec_{sat_id}_{start_ts_ms}"
+        
+        # Check if job exists -> Cancel
+        if scheduler.get_job(job_id):
+            scheduler.remove_job(job_id)
+            if job_id in scheduled_jobs:
+                del scheduled_jobs[job_id]
+            print(f"Cancelled recording job {job_id}")
+            return jsonify({'success': True, 'message': 'Recording cancelled', 'status': 'cancelled', 'job_id': job_id})
+        
+        # Schedule new job
+        now = datetime.datetime.now(datetime.timezone.utc)
+        if start_time > now:
+            scheduler.add_job(
+                execute_recording, 
+                'date', 
+                run_date=start_time, 
+                args=[host, user, password, command_template, sat_data, duration],
+                id=job_id
+            )
+            scheduled_jobs[job_id] = {
+                'sat_id': sat_id,
+                'start_time': start_ts_ms,
+                'sat_name': sat_data.get('name')
+            }
+            print(f"Scheduled recording {job_id} for {start_time}")
+            return jsonify({'success': True, 'message': f'Scheduled for {start_time.strftime("%H:%M:%S")}', 'status': 'scheduled', 'job_id': job_id})
+            
+    # Immediate execution fallback
+    execute_recording(host, user, password, command_template, sat_data, duration)
+    return jsonify({'success': True, 'message': 'Recording started immediately', 'status': 'started'})
+
+def execute_recording(host, user, password, template, sat_data, duration_override=None):
+    mgr = ssh_manager.SSHManager()
+    if duration_override:
         sat_data_exec = sat_data.copy()
-        sat_data_exec['duration'] = str(duration)
+        sat_data_exec['duration'] = str(duration_override)
     else:
         sat_data_exec = sat_data
         
-    success, msg = mgr.execute_command(host, user, password, command_template, sat_data_exec)
-    
-    if success:
-        return jsonify({'success': True, 'message': msg})
-    else:
-        return jsonify({'success': False, 'message': msg}), 500
+    print(f"Executing recording for {sat_data.get('name')}")
+    success, msg = mgr.execute_command(host, user, password, template, sat_data_exec)
+    print(f"Result: {success} - {msg}")
+
+@app.route('/api/scheduled')
+def get_scheduled_jobs():
+    """Returns list of currently scheduled job IDs."""
+    job_ids = [job.id for job in scheduler.get_jobs()]
+    return jsonify({'jobs': job_ids})
 
 if __name__ == '__main__':
     print("Starting GalaxyTrack V3...")

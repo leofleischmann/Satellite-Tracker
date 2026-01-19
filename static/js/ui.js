@@ -199,12 +199,17 @@ function renderPassList() {
                     <i class="fa-solid fa-play"></i> Jump
                 </button>
             </div>
-            <button class="btn btn-sm btn-danger w-100 mt-2" onclick="event.stopPropagation(); recordSat('${p.sat_id}', '${p.name.replace(/'/g, "\\'")}', ${durationSec})">
+            </div>
+            <button class="btn btn-sm btn-outline-danger w-100 mt-2 record-btn" 
+                id="btn-rec-${p.sat_id}-${p.start_time_ms}"
+                onclick="event.stopPropagation(); recordSat('${p.sat_id}', '${p.name.replace(/'/g, "\\'")}', ${durationSec}, ${p.start_time_ms})">
                 <i class="fa-solid fa-circle-dot me-2"></i> RECORD
             </button>
         </div>`;
     });
     $('#pass-list').html(html);
+    // After rendering, update buttons based on scheduled state
+    if (window.checkScheduledJobs) window.checkScheduledJobs();
 }
 
 function selectSat(id) {
@@ -299,30 +304,52 @@ function renderSatEditor(sats) {
         let rate = s.samplerate || '250k';
 
         html += `
-        <div class="p-2 border-bottom border-secondary sat-row">
+        <div class="p-3 border-bottom border-secondary sat-row bg-dark bg-opacity-25">
             <input type="hidden" class="sat-id" value="${id}">
-            <div class="d-flex align-items-center mb-2">
-                <div class="flex-grow-1">
-                    <input class="form-control form-control-sm bg-dark text-white border-0 sat-name" value="${name}">
-                    <small class="text-muted">#${id}</small>
+            
+            <div class="row g-2 align-items-center mb-2">
+                <!-- ID & Name -->
+                <div class="col-md-1 text-center">
+                    <span class="badge bg-secondary font-monospace" style="font-size: 0.9em;">${id}</span>
                 </div>
-                <div class="ms-2" style="width: 80px;">
-                    <input type="number" class="form-control form-control-sm bg-dark text-white border-0 sat-rad" value="${rad}" placeholder="km">
+                <div class="col-md-3">
+                    <label class="form-label text-muted small mb-0 d-none d-md-block">Name</label>
+                    <input class="form-control form-control-sm bg-dark text-white border-secondary sat-name" value="${name}" placeholder="Name">
                 </div>
-                <div class="ms-2" style="width: 100px;">
-                    <input class="form-control form-control-sm bg-dark text-white border-0 sat-freq" value="${freq}" placeholder="Freq">
+                
+                <!-- Params -->
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-0 d-none d-md-block">Freq (MHz)</label>
+                    <input class="form-control form-control-sm bg-dark text-white border-secondary sat-freq" value="${freq}" placeholder="Freq (MHz)">
                 </div>
-                 <div class="ms-2" style="width: 80px;">
-                    <input class="form-control form-control-sm bg-dark text-white border-0 sat-rate" value="${rate}" placeholder="Rate">
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-0 d-none d-md-block">Rate</label>
+                    <input class="form-control form-control-sm bg-dark text-white border-secondary sat-rate" value="${rate}" placeholder="Rate (e.g. 48k)">
                 </div>
-                <button class="btn btn-sm btn-outline-danger ms-2" onclick="$(this).closest('.sat-row').remove(); updateSatCount();">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-0 d-none d-md-block">Radius (km)</label>
+                    <input type="number" class="form-control form-control-sm bg-dark text-white border-secondary sat-rad" value="${rad}" placeholder="Radius (km)">
+                </div>
+
+                <!-- Delete -->
+                <div class="col-md-2 text-end">
+                    <label class="form-label d-block mb-0">&nbsp;</label>
+                    <button class="btn btn-sm btn-outline-danger w-100" onclick="$(this).closest('.sat-row').remove(); updateSatCount();">
+                        <i class="fa-solid fa-trash me-2"></i>Remove
+                    </button>
+                </div>
             </div>
-            <div class="mt-1">
-                <input class="form-control form-control-sm bg-dark text-warning border-secondary sat-cmd" 
-                    value="${cmd.replace(/"/g, '&quot;')}" 
-                    placeholder="SSH Command Template (use {filename}, {freq}, {rate}...)">
+
+            <!-- Command -->
+            <div class="row g-2">
+                <div class="col-12">
+                     <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-dark border-secondary text-muted"><i class="fa-solid fa-terminal"></i></span>
+                        <input class="form-control bg-dark text-warning border-secondary sat-cmd font-monospace" 
+                            value="${cmd.replace(/"/g, '&quot;')}" 
+                            placeholder="SSH Command Template (use {filename}, {freq}, {rate}...)">
+                     </div>
+                </div>
             </div>
         </div>`;
     });
