@@ -435,11 +435,13 @@
         <!-- Mobile Time Display -->
         <div id="mobile-time-display" style="display: none;">
             <button class="btn-control" onclick="offsetTime(-15)"><i class="fa-solid fa-backward"></i></button>
-            <div class="text-center">
+            <div class="text-center" onclick="resetTime()" style="cursor: pointer;" title="Reset to Live">
                 <div class="time-display text-white" id="mobile-clock-time">00:00:00</div>
                 <div class="date-display" id="mobile-clock-date">Jan 01, 2026</div>
             </div>
             <button class="btn-control" onclick="offsetTime(15)"><i class="fa-solid fa-forward"></i></button>
+            <button class="btn-control text-info" onclick="resetTime()" title="Live"><i
+                    class="fa-solid fa-circle-dot"></i></button>
         </div>
         <div id="pass-list">
             <div class="text-center text-light text-opacity-50 mt-4">Initializing...</div>
