@@ -39,6 +39,15 @@ $(document).ready(function () {
     initMap();
     initUI();
 
+    // Responsive Sidebar Defaults
+    if (window.innerWidth >= 768) {
+        $('#sidebar').removeClass('collapsed');
+        $('#sidebar-chevron').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+    } else {
+        $('#sidebar').addClass('collapsed');
+        $('#sidebar-chevron').removeClass('fa-chevron-down').addClass('fa-chevron-up');
+    }
+
     loadStatus(() => {
         loadEphemeris(null, () => {
             calculatePassesClientSide();
