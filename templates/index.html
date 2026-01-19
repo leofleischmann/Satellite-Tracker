@@ -267,6 +267,134 @@
             opacity: 0;
             pointer-events: none;
         }
+
+        /* Mobile Toggle Button for Sidebar */
+        #mobile-sidebar-toggle {
+            display: none;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1001;
+            font-size: 1.3em;
+        }
+
+        /* Sidebar collapsed state */
+        #sidebar.collapsed #pass-list {
+            display: none;
+        }
+
+        #sidebar.collapsed {
+            max-height: none;
+        }
+
+        #sidebar-collapse-btn {
+            display: none;
+        }
+
+        /* ========== MOBILE RESPONSIVE ========== */
+        @media (max-width: 768px) {
+
+            /* Hide settings and toggle buttons on mobile */
+            #config-btn,
+            #toggle-tracks-btn,
+            #toggle-radii-btn {
+                display: none !important;
+            }
+
+            /* Mobile sidebar toggle button */
+            #mobile-sidebar-toggle {
+                display: flex;
+            }
+
+            /* Sidebar collapses to bottom on mobile */
+            #sidebar {
+                position: absolute;
+                top: auto;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                max-height: 50vh;
+                border-radius: 20px 20px 0 0;
+                transition: transform 0.3s ease;
+            }
+
+            #sidebar.collapsed {
+                transform: translateY(calc(100% - 60px));
+            }
+
+            #sidebar-collapse-btn {
+                display: block;
+                position: absolute;
+                top: 8px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 40px;
+                height: 5px;
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 3px;
+                cursor: pointer;
+            }
+
+            #sidebar-header {
+                padding-top: 20px;
+            }
+
+            /* Simplify controls bar on mobile */
+            #controls-bar {
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                max-width: 100%;
+                transform: none;
+                border-radius: 0;
+                padding: 10px 15px;
+                display: none;
+                /* Hide on mobile - use sidebar instead */
+            }
+
+            /* Mobile time display in sidebar */
+            #mobile-time-display {
+                display: flex !important;
+                justify-content: center;
+                align-items: center;
+                gap: 15px;
+                padding: 10px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            #mobile-time-display .time-display {
+                font-size: 1.2em;
+            }
+
+            /* Pass list optimization for mobile */
+            #pass-list {
+                max-height: calc(50vh - 120px);
+            }
+
+            .pass-item {
+                padding: 10px;
+            }
+
+            /* Hide form-check on mobile */
+            #sidebar-header .form-check {
+                display: none;
+            }
+        }
+
+        /* Desktop: hide mobile elements */
+        @media (min-width: 769px) {
+            #mobile-time-display {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 
@@ -287,19 +415,31 @@
     </div>
 
     <!-- Sidebar -->
-    <div id="sidebar" class="glass-panel">
+    <div id="sidebar" class="glass-panel collapsed">
+        <div id="sidebar-collapse-btn" onclick="toggleSidebar()"></div>
         <div id="sidebar-header"
-            class="d-flex flex-column p-3 border-bottom border-light border-opacity-10 bg-white bg-opacity-10">
+            class="d-flex flex-column p-3 border-bottom border-light border-opacity-10 bg-white bg-opacity-10"
+            onclick="toggleSidebar()">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h6 class="m-0 text-uppercase text-white fw-bold" style="letter-spacing: 1px;"><i
-                        class="fa-solid fa-satellite"></i> Missions</h6>
-                <button class="btn btn-sm btn-outline-light border-0" onclick="refreshPasses()"><i
-                        class="fa-solid fa-rotate"></i></button>
+                        class="fa-solid fa-satellite"></i> Missions <i class="fa-solid fa-chevron-up ms-2"
+                        id="sidebar-chevron"></i></h6>
+                <button class="btn btn-sm btn-outline-light border-0"
+                    onclick="event.stopPropagation(); refreshPasses()"><i class="fa-solid fa-rotate"></i></button>
             </div>
             <div class="form-check form-switch small text-light text-opacity-75">
                 <input class="form-check-input" type="checkbox" id="dynamicCalcCheck">
                 <label class="form-check-label" for="dynamicCalcCheck">Calc from Time</label>
             </div>
+        </div>
+        <!-- Mobile Time Display -->
+        <div id="mobile-time-display" style="display: none;">
+            <button class="btn-control" onclick="offsetTime(-15)"><i class="fa-solid fa-backward"></i></button>
+            <div class="text-center">
+                <div class="time-display text-white" id="mobile-clock-time">00:00:00</div>
+                <div class="date-display" id="mobile-clock-date">Jan 01, 2026</div>
+            </div>
+            <button class="btn-control" onclick="offsetTime(15)"><i class="fa-solid fa-forward"></i></button>
         </div>
         <div id="pass-list">
             <div class="text-center text-light text-opacity-50 mt-4">Initializing...</div>

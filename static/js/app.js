@@ -538,9 +538,29 @@ function updateSpeedPill() {
 }
 function updateClock() {
     let d = new Date(simulationTime);
-    $('#clock-time').text(d.toLocaleTimeString([], { hour12: false }));
-    $('#clock-date').text(d.toLocaleDateString());
+    let timeStr = d.toLocaleTimeString([], { hour12: false });
+    let dateStr = d.toLocaleDateString();
+
+    // Update both desktop and mobile clocks
+    $('#clock-time').text(timeStr);
+    $('#clock-date').text(dateStr);
+    $('#mobile-clock-time').text(timeStr);
+    $('#mobile-clock-date').text(dateStr);
 }
+
+function toggleSidebar() {
+    let sidebar = $('#sidebar');
+    let chevron = $('#sidebar-chevron');
+    sidebar.toggleClass('collapsed');
+
+    // Rotate chevron
+    if (sidebar.hasClass('collapsed')) {
+        chevron.removeClass('fa-chevron-down').addClass('fa-chevron-up');
+    } else {
+        chevron.removeClass('fa-chevron-up').addClass('fa-chevron-down');
+    }
+}
+
 function toggleRadii() { showRadii = !showRadii; updateVisuals(true); }
 function toggleTracks() { showAllTracks = !showAllTracks; updateVisuals(true); }
 
