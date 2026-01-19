@@ -1,0 +1,6 @@
+flask>=2.3.0
+flask-compress>=1.14
+skyfield>=1.48
+requests>=2.31.0
+colorama>=0.4.6
+python-dateutil>=2.8.2

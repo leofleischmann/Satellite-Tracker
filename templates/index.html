@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GalaxyTrack Mission Control</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: #0f0f12;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100vw;
+            z-index: 1;
+        }
+
+        .glass-panel {
+            background: rgba(18, 18, 24, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        #controls-bar {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            max-width: 95vw;
+            border-radius: 16px;
+            padding: 15px 25px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #sidebar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 380px;
+            max-height: 85vh;
+            border-radius: 12px;
+            padding: 0;
+            z-index: 1000;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #sidebar-header {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        #pass-list {
+            overflow-y: auto;
+            padding: 10px;
+            flex-grow: 1;
+        }
+
+        #config-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            z-index: 1000;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        #config-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        #toggle-tracks-btn {
+            position: absolute;
+            bottom: 160px;
+            left: 20px;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 1.2em;
+        }
+
+        #toggle-tracks-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #toggle-tracks-btn.active {
+            background: #00d2ff;
+            color: black;
+        }
+
+        .pass-item {
+            background: rgba(255, 255, 255, 0.03);
+            margin-bottom: 8px;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid #444;
+            transition: all 0.2s;
+        }
+
+        .pass-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .pass-item.active {
+            border-left-color: #00d2ff;
+            background: rgba(0, 210, 255, 0.1);
+        }
+
+        .clickable-area {
+            cursor: pointer;
+            flex-grow: 1;
+        }
+
+        .badge-live {
+            background: #ff3333;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* Controls */
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .time-display {
+            font-variant-numeric: tabular-nums;
+            font-size: 1.4em;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 8px;
+        }
+
+        .time-display:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .date-display {
+            font-size: 0.9em;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-control {
+            background: transparent;
+            border: none;
+            color: #ccc;
+            font-size: 1.1em;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-control:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .btn-control.primary {
+            background: #00d2ff;
+            color: #000;
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #00d2ff;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+
+        .speed-pill {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .speed-opt {
+            padding: 4px 12px;
+            border-radius: 18px;
+            font-size: 0.8em;
+            cursor: pointer;
+            color: #888;
+            transition: all 0.2s;
+        }
+
+        .speed-opt.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-weight: 600;
+        }
+
+        #expert-time {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="map"></div>
+
+    <div id="config-btn" class="glass-panel" onclick="toggleConfig()">
+        <i class="fa-solid fa-gear"></i> Settings
+    </div>
+
+    <div id="toggle-tracks-btn" class="glass-panel" onclick="toggleTracks()" title="Toggle All Trajectories">
+        <i class="fa-solid fa-route"></i>
+    </div>
+    <div id="toggle-radii-btn" class="glass-panel" onclick="toggleRadii()" title="Toggle Transmission Radii"
+        style="bottom: 220px; left: 20px; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 1000; font-size: 1.2em;">
+        <i class="fa-solid fa-wifi"></i>
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="glass-panel">
+        <div id="sidebar-header"
+            class="d-flex flex-column p-3 border-bottom border-light border-opacity-10 bg-white bg-opacity-10">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="m-0 text-uppercase text-white fw-bold" style="letter-spacing: 1px;"><i
+                        class="fa-solid fa-satellite"></i> Missions</h6>
+                <button class="btn btn-sm btn-outline-light border-0" onclick="refreshPasses()"><i
+                        class="fa-solid fa-rotate"></i></button>
+            </div>
+            <div class="form-check form-switch small text-light text-opacity-75">
+                <input class="form-check-input" type="checkbox" id="dynamicCalcCheck">
+                <label class="form-check-label" for="dynamicCalcCheck">Calc from Time</label>
+            </div>
+        </div>
+        <div id="pass-list">
+            <div class="text-center text-light text-opacity-50 mt-4">Initializing...</div>
+        </div>
+    </div>
+
+    <!-- Time Controls -->
+    <div id="controls-bar" class="glass-panel">
+        <div class="control-row">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn-control primary" id="play-btn" onclick="togglePlay()"><i
+                        class="fa-solid fa-play"></i></button>
+                <div class="speed-pill">
+                    <div class="speed-opt active" onclick="setSpeed(1)">1x</div>
+                    <div class="speed-opt" onclick="setSpeed(10)">10x</div>
+                    <div class="speed-opt" onclick="setSpeed(100)">100x</div>
+                    <div class="speed-opt" onclick="setSpeed(1000)">1k</div>
+                </div>
+            </div>
+
+            <div class="text-center clickable" onclick="openDatePicker()" title="Jump to Date">
+                <div class="time-display" id="clock-time">00:00:00</div>
+                <div class="date-display" id="clock-date">Jan 01, 2026</div>
+                <input type="datetime-local" id="expert-time">
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn-control" onclick="offsetTime(-60)" title="-1 Hour"><i
+                        class="fa-solid fa-backward-step"></i></button>
+                <button class="btn-control text-info" onclick="resetTime()" title="Live"><i
+                        class="fa-solid fa-circle-dot"></i></button>
+                <button class="btn-control" onclick="offsetTime(60)" title="+1 Hour"><i
+                        class="fa-solid fa-forward-step"></i></button>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-3 mt-2">
+            <span class="text-muted small">-2h</span>
+            <input type="range" id="scrubber" min="-120" max="120" value="0" step="1">
+            <span class="text-muted small">+2h</span>
+        </div>
+    </div>
+
+    <!-- Config Modal -->
+    <div class="modal fade" id="configModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content bg-dark border-0" style="border-radius: 16px; overflow: hidden;">
+                <div class="modal-header border-0"
+                    style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 20px 25px;">
+                    <div>
+                        <h5 class="modal-title text-white mb-1"><i class="fa-solid fa-gear me-2"></i>System
+                            Configuration</h5>
+                        <small class="text-muted">Ground Station & Tracked Satellites</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="background: #0f0f1a; padding: 25px;">
+                    <!-- Station Settings -->
+                    <div class="card bg-transparent border-secondary mb-4">
+                        <div class="card-header bg-transparent border-secondary text-white">
+                            <i class="fa-solid fa-tower-broadcast me-2"></i>Ground Station
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-light small">Station Name</label>
+                                    <input type="text" id="cfg-name"
+                                        class="form-control bg-dark text-white border-secondary">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-light small">Latitude</label>
+                                    <input type="number" step="0.0001" id="cfg-lat"
+                                        class="form-control bg-dark text-white border-secondary">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-light small">Longitude</label>
+                                    <input type="number" step="0.0001" id="cfg-lon"
+                                        class="form-control bg-dark text-white border-secondary">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Satellite Search -->
+                    <div class="card bg-transparent border-secondary mb-4">
+                        <div class="card-header bg-transparent border-secondary text-white">
+                            <i class="fa-solid fa-magnifying-glass me-2"></i>Add Satellite
+                        </div>
+                        <div class="card-body">
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark border-secondary text-muted"><i
+                                        class="fa-solid fa-satellite"></i></span>
+                                <input type="text" id="sat-search"
+                                    class="form-control bg-dark text-white border-secondary"
+                                    placeholder="Search by name or NORAD ID..." oninput="searchSatellites(this.value)">
+                            </div>
+                            <div id="search-results" class="mt-2" style="max-height: 200px; overflow-y: auto;">
+                                <!-- Search results appear here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tracked Satellites -->
+                    <div class="card bg-transparent border-secondary">
+                        <div
+                            class="card-header bg-transparent border-secondary text-white d-flex justify-content-between align-items-center">
+                            <span><i class="fa-solid fa-list me-2"></i>Tracked Satellites</span>
+                            <span class="badge bg-primary" id="sat-count">0</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="sat-editor-list" style="max-height: 300px; overflow-y: auto;">
+                                <!-- Sat Items injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0" style="background: #0a0a12; padding: 15px 25px;">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary px-4" onclick="saveConfig()">
+                        <i class="fa-solid fa-save me-2"></i>Save & Reload
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Polar Plot Modal -->
+    <div class="modal fade" id="polarModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark border-0" style="border-radius: 16px;">
+                <div class="modal-header border-0"
+                    style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
+                    <h5 class="modal-title text-white" id="polar-title">
+                        <i class="fa-solid fa-compass me-2"></i>Pass Trajectory
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center" style="background: #0f0f1a; padding: 20px;">
+                    <canvas id="polarChart" width="350" height="350" style="margin: 0 auto;"></canvas>
+                    <div class="mt-3 text-light small d-flex justify-content-center gap-4">
+                        <span><i class="fa-solid fa-circle text-success"></i> Start</span>
+                        <span><i class="fa-regular fa-circle text-warning"></i> Max El</span>
+                        <span><i class="fa-solid fa-circle text-danger"></i> End</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,82 @@
+{
+    "25544": {
+        "name": "ISS-APRS",
+        "transmission_radius_km": 1200,
+        "frequency": "145.825 MHz",
+        "modulation": "",
+        "bandwidth": "",
+        "description": "",
+        "antenna_type": "",
+        "antenna_notes": ""
+    },
+    "25984": {
+        "name": "ORBCOMM-FM36",
+        "transmission_radius_km": 1500,
+        "frequency": "137.560 MHz",
+        "modulation": "",
+        "bandwidth": "",
+        "description": "",
+        "antenna_type": "",
+        "antenna_notes": ""
+    },
+    "26931": {
+        "name": "PCSAT",
+        "transmission_radius_km": 1200,
+        "frequency": "145.825 MHz",
+        "modulation": "",
+        "bandwidth": "",
+        "description": "",
+        "antenna_type": "",
+        "antenna_notes": ""
+    },
+    "39444": {
+        "name": "FUNCUBE-1",
+        "transmission_radius_km": 1200,
+        "frequency": "145.935 MHz",
+        "modulation": "",
+        "bandwidth": "",
+        "description": "",
+        "antenna_type": "",
+        "antenna_notes": ""
+    },
+    "40908": {
+        "name": "LILACSAT-2",
+        "transmission_radius_km": 1200,
+        "frequency": "144.390 MHz",
+        "modulation": "",
+        "bandwidth": "",
+        "description": "",
+        "antenna_type": "",
+        "antenna_notes": ""
+    },
+    "57166": {
+        "name": "METEOR-M 2-3",
+        "transmission_radius_km": 1800,
+        "frequency": "137.900 MHz",
+        "modulation": "",
+        "bandwidth": "",
+        "description": "",
+        "antenna_type": "",
+        "antenna_notes": ""
+    },
+    "59051": {
+        "name": "METEOR-M 2-4",
+        "transmission_radius_km": 1800,
+        "frequency": "137.900 MHz",
+        "modulation": "",
+        "bandwidth": "",
+        "description": "",
+        "antenna_type": "",
+        "antenna_notes": ""
+    },
+    "60089": {
+        "name": "SVOM",
+        "transmission_radius_km": 1500,
+        "frequency": "137.780 MHz",
+        "modulation": "",
+        "bandwidth": "",
+        "description": "",
+        "antenna_type": "",
+        "antenna_notes": ""
+    }
+}
