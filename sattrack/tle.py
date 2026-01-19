@@ -10,13 +10,33 @@ def get_tle_data(cache_file=config.TLE_CACHE_FILE, max_age_days=config.TLE_UPDAT
     Ensures valid TLE data exists locally. Downloads if missing or old.
     Returns: List of EarthSatellite objects.
     """
-    download_needed = True
-    if os.path.exists(cache_file):
+    download_needed = False
+    
+    # 1. Check for directory conflict
+    if os.path.isdir(cache_file):
+        print(f"{Fore.RED}CRITICAL ERROR: {cache_file} is a directory, expected a file.")
+        print(f"{Fore.YELLOW}Attempting to remove directory...{Fore.RESET}")
+        try:
+            os.rmdir(cache_file) # Only works if empty
+            print(f"{Fore.GREEN}Directory removed.{Fore.RESET}")
+            download_needed = True
+        except OSError:
+             print(f"{Fore.RED}Could not remove directory. Please delete {cache_file} manually.{Fore.RESET}")
+             return []
+
+    # 2. Check if file exists and is valid
+    if not os.path.exists(cache_file):
+        download_needed = True
+    elif os.path.getsize(cache_file) == 0:
+        print(f"{Fore.YELLOW}TLE file is empty.{Fore.RESET}")
+        download_needed = True
+    else:
         try:
             file_age = datetime.datetime.fromtimestamp(os.path.getmtime(cache_file))
             age_delta = datetime.datetime.now() - file_age
-            if age_delta.total_seconds() < (max_age_days * 86400):
-                download_needed = False
+            if age_delta.total_seconds() > (max_age_days * 86400):
+                 print(f"{Fore.YELLOW}TLE data is old ({age_delta}).{Fore.RESET}")
+                 download_needed = True
         except OSError:
             download_needed = True
 
@@ -26,6 +46,10 @@ def get_tle_data(cache_file=config.TLE_CACHE_FILE, max_age_days=config.TLE_UPDAT
         try:
             r = requests.get(config.TLE_URL, headers=headers, timeout=20)
             r.raise_for_status()
+            
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+            
             with open(cache_file, 'wb') as f:
                 f.write(r.content)
             print(f"{Fore.GREEN}TLE Download Successful!")

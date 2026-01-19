@@ -10,8 +10,8 @@ ALTITUDE_METERS = 445.0
 LOCATION_NAME = "Horb am Neckar"
 
 TLE_UPDATE_INTERVAL_DAYS = 0.5  # 12 hours
-JSON_FILE = 'satellites.json'
-TLE_CACHE_FILE = 'active_satellites.txt'
+JSON_FILE = 'data/satellites.json'
+TLE_CACHE_FILE = 'data/active_satellites.txt'
 TLE_URL = 'https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle'
 MIN_ELEVATION = 10.0
 EARTH_RADIUS_KM = 6371.0

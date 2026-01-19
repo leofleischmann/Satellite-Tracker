@@ -9,8 +9,7 @@ services:
       - "5000:5000"
     volumes:
       # Persist TLE cache and satellite config
-      - ./active_satellites.txt:/app/active_satellites.txt
-      - ./satellites.json:/app/satellites.json
+      - ./data:/app/data
     environment:
       - FLASK_ENV=production
     healthcheck:

@@ -6,7 +6,7 @@ __pycache__/
 venv/
 
 # TLE Cache (regenerated automatically)
-# active_satellites.txt
+data/active_satellites.txt
 
 # IDE
 .vscode/
