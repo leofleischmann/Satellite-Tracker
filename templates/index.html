@@ -363,10 +363,8 @@
             /* Mobile time display in sidebar */
             #mobile-time-display {
                 display: flex !important;
-                justify-content: center;
-                align-items: center;
-                gap: 15px;
-                padding: 10px;
+                /* Keep this to show it on mobile */
+                padding: 15px 10px;
                 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             }
 
@@ -433,15 +431,25 @@
             </div>
         </div>
         <!-- Mobile Time Display -->
-        <div id="mobile-time-display" style="display: none;">
-            <button class="btn-control" onclick="offsetTime(-15)"><i class="fa-solid fa-backward"></i></button>
-            <div class="text-center" onclick="resetTime()" style="cursor: pointer;" title="Reset to Live">
-                <div class="time-display text-white" id="mobile-clock-time">00:00:00</div>
-                <div class="date-display" id="mobile-clock-date">Jan 01, 2026</div>
+        <!-- Mobile Time Display -->
+        <div id="mobile-time-display" class="d-flex flex-column gap-2" style="display: none;">
+            <div class="d-flex justify-content-center align-items-center gap-3 w-100">
+                <button class="btn-control" onclick="offsetTime(-15)"><i class="fa-solid fa-backward"></i></button>
+                <div class="text-center" onclick="resetTime()" style="cursor: pointer;" title="Reset to Live">
+                    <div class="time-display text-white" id="mobile-clock-time">00:00:00</div>
+                    <div class="date-display" id="mobile-clock-date">Jan 01, 2026</div>
+                </div>
+                <button class="btn-control" onclick="offsetTime(15)"><i class="fa-solid fa-forward"></i></button>
+                <button class="btn-control text-info" onclick="resetTime()" title="Live"><i
+                        class="fa-solid fa-circle-dot"></i></button>
             </div>
-            <button class="btn-control" onclick="offsetTime(15)"><i class="fa-solid fa-forward"></i></button>
-            <button class="btn-control text-info" onclick="resetTime()" title="Live"><i
-                    class="fa-solid fa-circle-dot"></i></button>
+            <!-- Mobile Speed Control -->
+            <div class="speed-pill mx-auto">
+                <div class="speed-opt active" onclick="setSpeed(1)">1x</div>
+                <div class="speed-opt" onclick="setSpeed(10)">10x</div>
+                <div class="speed-opt" onclick="setSpeed(100)">100x</div>
+                <div class="speed-opt" onclick="setSpeed(1000)">1k</div>
+            </div>
         </div>
         <div id="pass-list">
             <div class="text-center text-light text-opacity-50 mt-4">Initializing...</div>
