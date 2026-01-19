@@ -34,6 +34,8 @@ let lastTrajectoryUpdate = 0;
 
 // Config
 let mapColors = ['#FF3333', '#33FF33', '#3333FF', '#FFFF33', '#FF33FF', '#33FFFF', '#FFA500', '#FF6B6B'];
+let showSatNames = true;
+let satLabels = {};
 
 $(document).ready(function () {
     initMap();
@@ -150,6 +152,13 @@ function initUI() {
     });
 
     initMobileDrag();
+
+    // Initialize Toggle State
+    if (showSatNames) $('#toggle-names-btn').addClass('active');
+
+    // Refresh button states
+    $('#toggle-tracks-btn').toggleClass('active', showAllTracks);
+    $('#toggle-radii-btn').toggleClass('active', showRadii);
 }
 
 function initMobileDrag() {
@@ -444,6 +453,12 @@ function updateVisuals(forceTrajectory) {
 
         if (posData) {
             updateSatVisuals(id, posData, idx, forceTrajectory ? points : null, posData.idx);
+        } else {
+            // Remove label if satellite position is invalid (e.g. out of time range)
+            if (satLabels[id]) {
+                map.removeLayer(satLabels[id]);
+                delete satLabels[id];
+            }
         }
     });
 }
@@ -560,31 +575,73 @@ function updateSatVisuals(id, pos, idx, points, currentIdx) {
             let startIdx = Math.max(0, currentIdx - windowSize);
             let endIdx = Math.min(points.length, currentIdx + windowSize);
 
-            let segments = [];
-            let currentSegment = [];
+            // Helper to draw a batch of segments
+            const drawTrace = (iStart, iEnd, isDashed) => {
+                let segments = [];
+                let currentSegment = [];
 
-            for (let i = startIdx; i < endIdx; i += skipFactor) {
-                let current = points[i];
-                if (currentSegment.length > 0) {
-                    let prev = currentSegment[currentSegment.length - 1];
-                    if (Math.abs(current[2] - prev[1]) > 100) {
-                        segments.push(currentSegment);
-                        currentSegment = [];
+                // Always include the start point if possible to ensure continuity
+                // But we need to handle the loop carefully
+                for (let i = iStart; i < iEnd; i += skipFactor) {
+                    let current = points[i];
+                    if (currentSegment.length > 0) {
+                        let prev = currentSegment[currentSegment.length - 1];
+                        if (Math.abs(current[2] - prev[1]) > 100) {
+                            segments.push(currentSegment);
+                            currentSegment = [];
+                        }
                     }
+                    currentSegment.push([current[1], current[2]]);
                 }
-                currentSegment.push([current[1], current[2]]);
-            }
-            if (currentSegment.length > 0) segments.push(currentSegment);
+                if (currentSegment.length > 0) segments.push(currentSegment);
 
-            let opacity = isSel ? 0.9 : 0.25;
-            let weight = isSel ? 3 : 1;
+                let opacity = isSel ? 0.9 : 0.4; // Slightly brighter for better visibility of mixed lines
+                let weight = isSel ? 3 : 2;
+                let dashArray = isDashed ? '4, 8' : null;
 
-            segments.forEach(seg => {
-                let poly = L.polyline(seg, {
-                    color: color, weight: weight, opacity: opacity, interactive: false
-                }).addTo(map);
-                trajectories[id].push(poly);
-            });
+                segments.forEach(seg => {
+                    let poly = L.polyline(seg, {
+                        color: color, weight: weight, opacity: opacity,
+                        dashArray: dashArray,
+                        interactive: false
+                    }).addTo(map);
+                    trajectories[id].push(poly);
+                });
+            };
+
+            // Draw Past (Dashed)
+            // Ensure we include currentIdx in past so it connects
+            drawTrace(startIdx, currentIdx + 1, true);
+
+            // Draw Future (Solid)
+            // Start from currentIdx to connect
+            drawTrace(currentIdx, endIdx, false);
+
+        }
+    }
+
+    // Labels
+    if (showSatNames) {
+        if (!satLabels[id]) {
+            satLabels[id] = L.marker([pos.lat, pos.lon], {
+                icon: L.divIcon({
+                    className: 'sat-name-label',
+                    html: `<div style="color:white; text-shadow: 0 0 3px black; white-space:nowrap; margin-top:-15px; text-align:center; transform: translate(-50%, -100%); font-weight:bold; font-size: 14px; pointer-events: none;">${name}</div>`,
+                    iconSize: [0, 0],
+                    iconAnchor: [0, 0]
+                }),
+                interactive: false,
+                zIndexOffset: 1000
+            }).addTo(map);
+        } else {
+            satLabels[id].setLatLng([pos.lat, pos.lon]);
+            // Update name in case it changed (rare)
+            // Force icon update only if needed could be optimized, but this is okay for now
+        }
+    } else {
+        if (satLabels[id]) {
+            map.removeLayer(satLabels[id]);
+            delete satLabels[id];
         }
     }
 }
@@ -637,8 +694,21 @@ function toggleSidebar() {
     }
 }
 
-function toggleRadii() { showRadii = !showRadii; updateVisuals(true); }
-function toggleTracks() { showAllTracks = !showAllTracks; updateVisuals(true); }
+function toggleRadii() {
+    showRadii = !showRadii;
+    $('#toggle-radii-btn').toggleClass('active', showRadii);
+    updateVisuals(true);
+}
+function toggleTracks() {
+    showAllTracks = !showAllTracks;
+    $('#toggle-tracks-btn').toggleClass('active', showAllTracks);
+    updateVisuals(true);
+}
+function toggleNames() {
+    showSatNames = !showSatNames;
+    $('#toggle-names-btn').toggleClass('active', showSatNames);
+    updateVisuals(true);
+}
 
 function offsetTime(minutes) {
     simulationTime += minutes * 60 * 1000;

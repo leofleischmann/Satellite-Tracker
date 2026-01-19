@@ -302,9 +302,26 @@
 
             /* Hide settings and toggle buttons on mobile */
             #config-btn,
-            #toggle-tracks-btn,
             #toggle-radii-btn {
                 display: none !important;
+            }
+
+            /* Ensure Trajectories and Names buttons are visible on mobile */
+            #toggle-tracks-btn,
+            #toggle-names-btn {
+                display: flex !important;
+                bottom: calc(50vh + 20px) !important;
+                /* Position above the collapsed sidebar */
+            }
+
+            #toggle-tracks-btn {
+                left: 20px !important;
+            }
+
+            #toggle-names-btn {
+                left: 80px !important;
+                /* Next to tracks button */
+                bottom: calc(50vh + 20px) !important;
             }
 
             /* Mobile sidebar toggle button */
@@ -420,11 +437,18 @@
         <i class="fa-solid fa-gear"></i> Settings
     </div>
 
+
     <div id="toggle-tracks-btn" class="glass-panel" onclick="toggleTracks()" title="Toggle All Trajectories">
         <i class="fa-solid fa-route"></i>
     </div>
-    <div id="toggle-radii-btn" class="glass-panel" onclick="toggleRadii()" title="Toggle Transmission Radii"
+
+    <div id="toggle-names-btn" class="glass-panel" onclick="toggleNames()" title="Toggle Satellite Names"
         style="bottom: 220px; left: 20px; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 1000; font-size: 1.2em;">
+        <i class="fa-solid fa-tag"></i>
+    </div>
+
+    <div id="toggle-radii-btn" class="glass-panel" onclick="toggleRadii()" title="Toggle Transmission Radii"
+        style="bottom: 280px; left: 20px; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 1000; font-size: 1.2em;">
         <i class="fa-solid fa-wifi"></i>
     </div>
 
