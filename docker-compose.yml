@@ -5,8 +5,8 @@ services:
       dockerfile: Dockerfile
     container_name: sattrack
     restart: unless-stopped
-    ports:
-      - "5000:5000"
+    network_mode: host # Use host network for direct access to local devices
+    # ports removed - not needed with host network
     volumes:
       # Persist TLE cache and satellite config
       - ./data:/app/data

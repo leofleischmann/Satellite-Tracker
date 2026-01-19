@@ -16,36 +16,51 @@ class SSHManager:
         try:
             # Format command with satellite data
             cmd = self._format_command(command_template, sat_data)
-            print(f"{Fore.CYAN}Connecting to {host}...{Fore.RESET}")
+            print(f"{Fore.CYAN}[SSH] Connecting to {user}@{host}:22 ...{Fore.RESET}")
+            
+            # Try to resolve hostname first
+            try:
+                resolved_ip = socket.gethostbyname(host)
+                print(f"{Fore.CYAN}[SSH] Resolved {host} -> {resolved_ip}{Fore.RESET}")
+            except socket.gaierror as dns_err:
+                print(f"{Fore.RED}[SSH] DNS resolution failed for {host}: {dns_err}{Fore.RESET}")
+                return False, f"DNS resolution failed: {dns_err}"
             
             self.client.connect(host, username=user, password=password, timeout=10)
+            print(f"{Fore.GREEN}[SSH] Connected! Executing command...{Fore.RESET}")
+            print(f"{Fore.YELLOW}[SSH] Command: {cmd}{Fore.RESET}")
             
-            print(f"{Fore.GREEN}Executing: {cmd}{Fore.RESET}")
             stdin, stdout, stderr = self.client.exec_command(cmd)
             
-            # Read output (non-blocking if possible, but for record we might want to wait a bit or just return)
-            # Since the user example used "timeout" in the command, it might run for minutes.
-            # We should probably not wait for it to finish if it's long running, 
-            # BUT the user example runs `sshpass ... "timeout ... rtl_sdr ..."`
-            # If we run this via paramiko exec_command, it returns immediately with the streams.
-            # We can check for immediate errors.
-            
+            # Read output
             error = stderr.read().decode().strip()
             output = stdout.read().decode().strip()
             
             self.client.close()
+            print(f"{Fore.GREEN}[SSH] Connection closed.{Fore.RESET}")
+            
+            if error:
+                print(f"{Fore.RED}[SSH] stderr: {error}{Fore.RESET}")
+            if output:
+                print(f"{Fore.GREEN}[SSH] stdout: {output}{Fore.RESET}")
             
             if error and not output:
-                # Some warnings go to stderr, so only treat as error if it looks bad?
-                # For now return both.
-                print(f"{Fore.RED}SSH Error: {error}{Fore.RESET}")
                 return False, error
                 
-            return True, f"Command sent. Output: {output}"
+            return True, f"Output: {output}" if output else "Command sent (no output)"
 
+        except socket.timeout:
+            print(f"{Fore.RED}[SSH] Connection timed out to {host}{Fore.RESET}")
+            return False, f"Connection timed out to {host}. Check if SSH port 22 is open and the IP is correct."
+        except paramiko.AuthenticationException:
+            print(f"{Fore.RED}[SSH] Authentication failed for {user}@{host}{Fore.RESET}")
+            return False, f"Authentication failed. Check username/password."
+        except paramiko.SSHException as ssh_err:
+            print(f"{Fore.RED}[SSH] SSH error: {ssh_err}{Fore.RESET}")
+            return False, f"SSH error: {ssh_err}"
         except Exception as e:
-            print(f"{Fore.RED}SSH Exception: {e}{Fore.RESET}")
-            return False, str(e)
+            print(f"{Fore.RED}[SSH] Exception: {type(e).__name__}: {e}{Fore.RESET}")
+            return False, f"{type(e).__name__}: {e}"
 
     def _format_command(self, template, sat_data):
         """
