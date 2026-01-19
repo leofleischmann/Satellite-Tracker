@@ -14,7 +14,6 @@ function loadStatus(cb) {
         }
         if (cb) cb();
     });
-});
 }
 
 // Function to test SSH connection
