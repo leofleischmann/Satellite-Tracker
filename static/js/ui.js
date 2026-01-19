@@ -202,6 +202,7 @@ function renderPassList() {
             </div>
             <button class="btn btn-sm btn-outline-danger w-100 mt-2 record-btn" 
                 id="btn-rec-${p.sat_id}-${p.start_time_ms}"
+                data-scheduled="false"
                 onclick="event.stopPropagation(); recordSat('${p.sat_id}', '${p.name.replace(/'/g, "\\'")}', ${durationSec}, ${p.start_time_ms})">
                 <i class="fa-solid fa-circle-dot me-2"></i> RECORD
             </button>

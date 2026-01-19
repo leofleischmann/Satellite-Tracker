@@ -142,16 +142,18 @@ function updateRecordButtons() {
         let startTime = parts[3];
         let jobId = `rec_${satId}_${startTime}`;
 
-        if (scheduledPasses.has(jobId)) {
-            if (!$(this).hasClass('btn-danger')) {
-                $(this).removeClass('btn-outline-danger').addClass('btn-danger pulse-red');
-                $(this).html('<i class="fa-solid fa-stop me-2"></i> CANCEL RECORDING');
-            }
-        } else {
-            if ($(this).hasClass('btn-danger')) {
-                $(this).removeClass('btn-danger pulse-red').addClass('btn-outline-danger');
-                $(this).html('<i class="fa-solid fa-circle-dot me-2"></i> RECORD');
-            }
+        let isScheduled = scheduledPasses.has(jobId);
+        let currentState = $(this).attr('data-scheduled') === 'true';
+
+        // Only update DOM if state actually changed
+        if (isScheduled && !currentState) {
+            $(this).attr('data-scheduled', 'true');
+            $(this).removeClass('btn-outline-danger').addClass('btn-danger pulse-red');
+            $(this).html('<i class="fa-solid fa-stop me-2"></i> CANCEL RECORDING');
+        } else if (!isScheduled && currentState) {
+            $(this).attr('data-scheduled', 'false');
+            $(this).removeClass('btn-danger pulse-red').addClass('btn-outline-danger');
+            $(this).html('<i class="fa-solid fa-circle-dot me-2"></i> RECORD');
         }
     });
 }
