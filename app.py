@@ -364,7 +364,8 @@ def execute_recording(host, user, password, template, sat_data, duration_overrid
         sat_data_exec = sat_data
         
     print(f"Executing recording for {sat_data.get('name')}")
-    success, msg = mgr.execute_command(host, user, password, template, sat_data_exec)
+    # Use background=True so the command runs async and SSH returns immediately
+    success, msg = mgr.execute_command(host, user, password, template, sat_data_exec, background=True)
     print(f"Result: {success} - {msg}")
 
 @app.route('/api/scheduled')
@@ -384,10 +385,12 @@ def test_ssh():
     if not host or not user or not password:
         return jsonify({'success': False, 'message': 'Missing SSH credentials'}), 400
         
-    cmd = "timeout 3 rtl_sdr -f 137.9M -s 250k -g 40 - | sox -t raw -r 250k -e unsigned-integer -b 8 -c 1 - /home/pi/TEST.wav"
+    # Simple test command - just check if we can connect and execute
+    cmd = "echo 'SSH connection successful!' && hostname && date"
     
     mgr = ssh_manager.SSHManager()
-    success, msg = mgr.execute_command(host, user, password, cmd, {})
+    # Use synchronous execution for test (background=False)
+    success, msg = mgr.execute_command(host, user, password, cmd, {}, background=False)
     
     return jsonify({'success': success, 'message': msg})
 

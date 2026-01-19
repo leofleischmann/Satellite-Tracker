@@ -1,5 +1,4 @@
 import paramiko
-import time
 import socket
 from datetime import datetime
 from colorama import Fore
@@ -9,9 +8,10 @@ class SSHManager:
         self.client = paramiko.SSHClient()
         self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    def execute_command(self, host, user, password, command_template, sat_data):
+    def execute_command(self, host, user, password, command_template, sat_data, background=True):
         """
         Connects to the remote host and executes the formatted command.
+        If background=True, the command runs asynchronously on the remote and SSH returns immediately.
         """
         try:
             # Format command with satellite data
@@ -27,27 +27,47 @@ class SSHManager:
                 return False, f"DNS resolution failed: {dns_err}"
             
             self.client.connect(host, username=user, password=password, timeout=10)
-            print(f"{Fore.GREEN}[SSH] Connected! Executing command...{Fore.RESET}")
-            print(f"{Fore.YELLOW}[SSH] Command: {cmd}{Fore.RESET}")
+            print(f"{Fore.GREEN}[SSH] Connected!{Fore.RESET}")
             
-            stdin, stdout, stderr = self.client.exec_command(cmd)
-            
-            # Read output
-            error = stderr.read().decode().strip()
-            output = stdout.read().decode().strip()
-            
-            self.client.close()
-            print(f"{Fore.GREEN}[SSH] Connection closed.{Fore.RESET}")
-            
-            if error:
-                print(f"{Fore.RED}[SSH] stderr: {error}{Fore.RESET}")
-            if output:
-                print(f"{Fore.GREEN}[SSH] stdout: {output}{Fore.RESET}")
-            
-            if error and not output:
-                return False, error
+            if background:
+                # Wrap command to run in background with nohup
+                # This ensures the command keeps running even after SSH disconnects
+                # Log output to a file on the Pi for debugging
+                log_file = f"/tmp/sattrack_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+                bg_cmd = f"nohup bash -c '{cmd}' > {log_file} 2>&1 &"
+                print(f"{Fore.YELLOW}[SSH] Background command: {bg_cmd}{Fore.RESET}")
+                print(f"{Fore.CYAN}[SSH] Log file on Pi: {log_file}{Fore.RESET}")
                 
-            return True, f"Output: {output}" if output else "Command sent (no output)"
+                stdin, stdout, stderr = self.client.exec_command(bg_cmd)
+                
+                # Give it a moment to start, then close
+                import time
+                time.sleep(0.5)
+                
+                self.client.close()
+                print(f"{Fore.GREEN}[SSH] Command started in background. Connection closed.{Fore.RESET}")
+                return True, f"Recording started! Check {log_file} on Pi for output."
+            else:
+                # Synchronous execution (for test commands)
+                print(f"{Fore.YELLOW}[SSH] Sync command: {cmd}{Fore.RESET}")
+                stdin, stdout, stderr = self.client.exec_command(cmd, timeout=30)
+                
+                # Read output
+                error = stderr.read().decode().strip()
+                output = stdout.read().decode().strip()
+                
+                self.client.close()
+                print(f"{Fore.GREEN}[SSH] Connection closed.{Fore.RESET}")
+                
+                if error:
+                    print(f"{Fore.RED}[SSH] stderr: {error}{Fore.RESET}")
+                if output:
+                    print(f"{Fore.GREEN}[SSH] stdout: {output}{Fore.RESET}")
+                
+                if error and not output:
+                    return False, error
+                    
+                return True, output if output else "Command executed (no output)"
 
         except socket.timeout:
             print(f"{Fore.RED}[SSH] Connection timed out to {host}{Fore.RESET}")
@@ -65,7 +85,7 @@ class SSHManager:
     def _format_command(self, template, sat_data):
         """
         Substitutes variables into the command template.
-        Supported variables: {name}, {freq}, {rate}, {timestamp}, {filename}
+        Supported variables: {name}, {freq}, {rate}, {timestamp}, {filename}, {duration}, {gain}
         """
         now = datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
@@ -75,7 +95,7 @@ class SSHManager:
         safe_name = "".join([c if c.isalnum() or c in '-_' else '_' for c in name])
         
         freq = sat_data.get('frequency', '0M').replace(' ', '')
-        rate = sat_data.get('samplerate', '250k') # Default to 250k if missing
+        rate = sat_data.get('samplerate', '250k')
         
         # Derived variables
         filename = f"{safe_name}_{freq}_{rate}_{timestamp}"
@@ -87,13 +107,11 @@ class SSHManager:
             'rate': rate,
             'timestamp': timestamp,
             'filename': filename,
-            'duration': sat_data.get('duration', '600'), # Allow duration override if needed
+            'duration': sat_data.get('duration', '600'),
             'gain': sat_data.get('gain', '40')
         }
         
-        # Use safe formatting (ignore missing keys if user adds their own?)
-        # For now, using standard format, which raises KeyError if missing.
-        # Let's wrap in a way that handles partials or custom keys provided in sat_data
+        # Merge with sat_data (sat_data takes precedence for overrides)
         full_context = sat_data.copy()
         full_context.update(context)
         
