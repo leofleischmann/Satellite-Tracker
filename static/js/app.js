@@ -538,7 +538,7 @@ function updateSatVisuals(id, pos, idx, points, currentIdx) {
 
     // Circle
     let isSel = (id == selectedSatId);
-    let shouldShow = isSel;
+    let shouldShow = isSel || showRadii;
 
     if (!circles[id]) {
         circles[id] = L.circle([pos.lat, pos.lon], {
