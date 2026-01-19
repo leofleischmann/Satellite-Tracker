@@ -52,6 +52,7 @@ function initMap() {
     map = L.map('map', {
         zoomControl: false,
         attributionControl: false,
+        keyboard: false,               // Disable keyboard navigation (arrows used for time control)
         zoomSnap: 0.5,
         preferCanvas: true,
         // Zoom optimizations for smoother experience
