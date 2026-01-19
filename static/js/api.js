@@ -115,16 +115,28 @@ function saveConfig() {
     });
 }
 
-// Global set of scheduled job IDs (constructed client-side from server check or local interactions)
+// Global storage for scheduled jobs with time ranges
 let scheduledPasses = new Set();
+let scheduledJobDetails = [];  // Array of {job_id, start_time, end_time, sat_name}
 
 function checkScheduledJobs() {
     $.get('/api/scheduled', function (res) {
-        // jobs look like 'rec_SATID_TIMESTAMP'
         scheduledPasses.clear();
-        res.jobs.forEach(jid => scheduledPasses.add(jid));
+        scheduledJobDetails = res.jobs || [];
+        scheduledJobDetails.forEach(job => scheduledPasses.add(job.job_id));
         updateRecordButtons();
     });
+}
+
+// Check if a new recording would conflict with existing scheduled recordings
+function checkConflict(newStart, newEnd) {
+    for (let job of scheduledJobDetails) {
+        // Two time ranges overlap if: start1 < end2 AND start2 < end1
+        if (newStart < job.end_time && job.start_time < newEnd) {
+            return job;  // Return the conflicting job
+        }
+    }
+    return null;
 }
 
 function updateRecordButtons() {
@@ -159,9 +171,79 @@ function updateRecordButtons() {
 }
 
 function recordSat(id, name, durationSeconds, startTime) {
-    // If it's already scheduled, we don't need to confirm cancellation, just do it.
-    // If it's new, maybe confirms? User said "Toggle". Let's make it quick.
+    let endTime = startTime + (durationSeconds * 1000);
+    let jobId = `rec_${id}_${startTime}`;
 
+    // Check if this job is already scheduled (user wants to cancel)
+    if (scheduledPasses.has(jobId)) {
+        // Just cancel it
+        doRecordRequest(id, durationSeconds, startTime);
+        return;
+    }
+
+    // Check for conflicts with existing scheduled recordings
+    let conflict = checkConflict(startTime, endTime);
+
+    if (conflict) {
+        // There's a conflict - ask user which one to keep
+        let conflictStart = new Date(conflict.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        let conflictEnd = new Date(conflict.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        let newStart = new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        let newEnd = new Date(endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        let choice = confirm(
+            `⚠️ KONFLIKT ERKANNT!\n\n` +
+            `Die Aufnahme für "${name}" (${newStart} - ${newEnd}) überlappt mit:\n` +
+            `"${conflict.sat_name}" (${conflictStart} - ${conflictEnd})\n\n` +
+            `Der RTL-SDR kann nur einen Satelliten gleichzeitig empfangen.\n\n` +
+            `OK = Alte Aufnahme abbrechen und NEUE planen\n` +
+            `Abbrechen = Alte Aufnahme behalten`
+        );
+
+        if (choice) {
+            // User chose to replace - first cancel the conflicting job
+            cancelRecording(conflict.job_id, function () {
+                // Then schedule the new one
+                doRecordRequest(id, durationSeconds, startTime);
+            });
+        }
+        // If user clicked cancel, do nothing
+        return;
+    }
+
+    // No conflict - just schedule
+    doRecordRequest(id, durationSeconds, startTime);
+}
+
+function cancelRecording(jobId, callback) {
+    // Extract sat_id and start_time from jobId (format: rec_SATID_TIMESTAMP)
+    let parts = jobId.split('_');
+    if (parts.length < 3) return;
+
+    let satId = parts[1];
+    let startTime = parseInt(parts[2]);
+
+    $.ajax({
+        url: '/api/record',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ sat_id: satId, duration: 0, start_time: startTime }),
+        success: function (res) {
+            if (res.status === 'cancelled') {
+                scheduledPasses.delete(res.job_id);
+                // Also remove from details
+                scheduledJobDetails = scheduledJobDetails.filter(j => j.job_id !== res.job_id);
+                updateRecordButtons();
+            }
+            if (callback) callback();
+        },
+        error: function () {
+            if (callback) callback();
+        }
+    });
+}
+
+function doRecordRequest(id, durationSeconds, startTime) {
     $.ajax({
         url: '/api/record',
         type: 'POST',
@@ -170,11 +252,10 @@ function recordSat(id, name, durationSeconds, startTime) {
         success: function (res) {
             if (res.status === 'scheduled') {
                 scheduledPasses.add(res.job_id);
-                // alert('Scheduled: ' + res.message);
-                updateRecordButtons();
+                // Refresh job details from server to get accurate end_time
+                checkScheduledJobs();
             } else if (res.status === 'cancelled') {
                 scheduledPasses.delete(res.job_id);
-                // alert('Cancelled');
                 updateRecordButtons();
             } else {
                 alert(res.message);

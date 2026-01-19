@@ -346,6 +346,8 @@ def record_satellite():
             scheduled_jobs[job_id] = {
                 'sat_id': sat_id,
                 'start_time': start_ts_ms,
+                'end_time': start_ts_ms + (duration * 1000),  # Store end time for conflict detection
+                'duration': duration,
                 'sat_name': sat_data.get('name')
             }
             print(f"Scheduled recording {job_id} for {start_time}")
@@ -370,9 +372,19 @@ def execute_recording(host, user, password, template, sat_data, duration_overrid
 
 @app.route('/api/scheduled')
 def get_scheduled_jobs():
-    """Returns list of currently scheduled job IDs."""
-    job_ids = [job.id for job in scheduler.get_jobs()]
-    return jsonify({'jobs': job_ids})
+    """Returns list of currently scheduled jobs with time ranges for conflict detection."""
+    jobs = []
+    for job_id, job_info in scheduled_jobs.items():
+        if scheduler.get_job(job_id):  # Only include jobs that are still scheduled
+            jobs.append({
+                'job_id': job_id,
+                'sat_id': job_info.get('sat_id'),
+                'sat_name': job_info.get('sat_name'),
+                'start_time': job_info.get('start_time'),
+                'end_time': job_info.get('end_time'),
+                'duration': job_info.get('duration')
+            })
+    return jsonify({'jobs': jobs})
 
 @app.route('/api/test_ssh', methods=['POST'])
 def test_ssh():
