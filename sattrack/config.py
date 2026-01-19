@@ -33,3 +33,22 @@ def save_sat_config(data, filepath=JSON_FILE):
         return True
     except Exception:
         return False
+SETTINGS_FILE = 'data/settings.json'
+
+def load_settings(filepath=SETTINGS_FILE):
+    try:
+        if not os.path.exists(filepath):
+            return {}
+        with open(filepath, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        print(Fore.RED + f"Error loading settings: {e}")
+        return {}
+
+def save_settings(data, filepath=SETTINGS_FILE):
+    try:
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4)
+        return True
+    except Exception:
+        return False

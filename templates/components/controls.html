@@ -1,0 +1,34 @@
+<div id="controls-bar" class="glass-panel">
+    <div class="control-row">
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn-control primary" id="play-btn" onclick="togglePlay()"><i
+                    class="fa-solid fa-play"></i></button>
+            <div class="speed-pill">
+                <div class="speed-opt active" onclick="setSpeed(1)">1x</div>
+                <div class="speed-opt" onclick="setSpeed(10)">10x</div>
+                <div class="speed-opt" onclick="setSpeed(100)">100x</div>
+                <div class="speed-opt" onclick="setSpeed(1000)">1k</div>
+            </div>
+        </div>
+
+        <div class="text-center clickable" onclick="openDatePicker()" title="Jump to Date">
+            <div class="time-display" id="clock-time">00:00:00</div>
+            <div class="date-display" id="clock-date">Jan 01, 2026</div>
+            <input type="datetime-local" id="expert-time">
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn-control" onclick="offsetTime(-60)" title="-1 Hour"><i
+                    class="fa-solid fa-backward-step"></i></button>
+            <button class="btn-control text-info" onclick="resetTime()" title="Live"><i
+                    class="fa-solid fa-circle-dot"></i></button>
+            <button class="btn-control" onclick="offsetTime(60)" title="+1 Hour"><i
+                    class="fa-solid fa-forward-step"></i></button>
+        </div>
+    </div>
+    <div class="d-flex align-items-center gap-3 mt-2">
+        <span class="text-muted small">-1h</span>
+        <input type="range" id="scrubber" min="-60" max="60" value="0" step="1">
+        <span class="text-muted small">+1h</span>
+    </div>
+</div>

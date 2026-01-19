@@ -1,0 +1,20 @@
+<div class="modal fade" id="polarModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-0" style="border-radius: 16px;">
+            <div class="modal-header border-0" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
+                <h5 class="modal-title text-white" id="polar-title">
+                    <i class="fa-solid fa-compass me-2"></i>Pass Trajectory
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center" style="background: #0f0f1a; padding: 20px;">
+                <canvas id="polarChart" width="350" height="350" style="margin: 0 auto;"></canvas>
+                <div class="mt-3 text-light small d-flex justify-content-center gap-4">
+                    <span><i class="fa-solid fa-circle text-success"></i> Start</span>
+                    <span><i class="fa-regular fa-circle text-warning"></i> Max El</span>
+                    <span><i class="fa-solid fa-circle text-danger"></i> End</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

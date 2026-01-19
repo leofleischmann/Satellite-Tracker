@@ -1,0 +1,165 @@
+<div class="modal fade" id="configModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content bg-dark border-0" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header border-0"
+                style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 20px 25px;">
+                <div>
+                    <h5 class="modal-title text-white mb-1"><i class="fa-solid fa-gear me-2"></i>System Configuration
+                    </h5>
+                    <small class="text-muted">Ground Station & Tracked Satellites</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="background: #0f0f1a; padding: 0;">
+
+                <!-- Tabs -->
+                <ul class="nav nav-tabs nav-fill border-secondary" id="configTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active text-white rounded-0 py-3" id="general-tab" data-bs-toggle="tab"
+                            data-bs-target="#general-pane" type="button" role="tab">
+                            <i class="fa-solid fa-tower-broadcast me-2"></i>General
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link text-white rounded-0 py-3" id="recording-tab" data-bs-toggle="tab"
+                            data-bs-target="#recording-pane" type="button" role="tab">
+                            <i class="fa-solid fa-terminal me-2"></i>Recording (SSH)
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link text-white rounded-0 py-3" id="satellites-tab" data-bs-toggle="tab"
+                            data-bs-target="#satellites-pane" type="button" role="tab">
+                            <i class="fa-solid fa-satellite me-2"></i>Satellites
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content p-4" id="configTabsContent">
+
+                    <!-- General Tab -->
+                    <div class="tab-pane fade show active" id="general-pane" role="tabpanel">
+                        <div class="card bg-transparent border-secondary">
+                            <div class="card-body">
+                                <h6 class="text-white mb-3">Ground Station Location</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label text-light small">Station Name</label>
+                                        <input type="text" id="cfg-name"
+                                            class="form-control bg-dark text-white border-secondary">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label text-light small">Latitude</label>
+                                        <input type="number" step="0.0001" id="cfg-lat"
+                                            class="form-control bg-dark text-white border-secondary">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label text-light small">Longitude</label>
+                                        <input type="number" step="0.0001" id="cfg-lon"
+                                            class="form-control bg-dark text-white border-secondary">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recording Tab -->
+                    <div class="tab-pane fade" id="recording-pane" role="tabpanel">
+                        <div class="card bg-transparent border-secondary">
+                            <div class="card-body">
+                                <div class="alert alert-info bg-dark border-info text-info small mb-3">
+                                    <i class="fa-solid fa-circle-info me-2"></i>
+                                    Configure the remote Raspberry Pi or server that will execute the RTL-SDR recording
+                                    commands.
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label text-light small">Host IP</label>
+                                        <input type="text" id="cfg-ssh-host" placeholder="192.168.1.50"
+                                            class="form-control bg-dark text-white border-secondary">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label text-light small">User</label>
+                                        <input type="text" id="cfg-ssh-user" placeholder="pi"
+                                            class="form-control bg-dark text-white border-secondary">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label text-light small">Password</label>
+                                        <input type="password" id="cfg-ssh-pass" placeholder="••••••"
+                                            class="form-control bg-dark text-white border-secondary">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Satellites Tab -->
+                    <div class="tab-pane fade" id="satellites-pane" role="tabpanel">
+                        <div class="row g-4">
+                            <!-- Search Column -->
+                            <div class="col-md-5">
+                                <h6 class="text-white mb-3">Add New Satellite</h6>
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text bg-dark border-secondary text-muted"><i
+                                            class="fa-solid fa-magnifying-glass"></i></span>
+                                    <input type="text" id="sat-search"
+                                        class="form-control bg-dark text-white border-secondary"
+                                        placeholder="Search by name or NORAD ID..."
+                                        oninput="searchSatellites(this.value)">
+                                </div>
+                                <div id="search-results" class="border border-secondary rounded p-2 bg-dark"
+                                    style="height: 300px; overflow-y: auto;">
+                                    <div class="text-muted small text-center mt-3">Results will appear here...</div>
+                                </div>
+                            </div>
+
+                            <!-- List Column -->
+                            <div class="col-md-7">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="text-white m-0">Tracked Satellites <span class="badge bg-primary ms-2"
+                                            id="sat-count">0</span></h6>
+                                    <button class="btn btn-sm btn-outline-success" onclick="addSatRow()"><i
+                                            class="fa-solid fa-plus me-1"></i> Add Manual</button>
+                                </div>
+                                <div class="border border-secondary rounded bg-dark"
+                                    style="height: 300px; overflow-y: auto; overflow-x: hidden;">
+                                    <div id="sat-editor-list"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="modal-footer border-0" style="background: #0a0a12; padding: 15px 25px;">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary px-4" onclick="saveConfig()">
+                    <i class="fa-solid fa-save me-2"></i>Save & Reload
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Custom Tab Styles for Config Modal */
+    .nav-tabs .nav-link {
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: #aaa;
+        transition: all 0.2s;
+    }
+
+    .nav-tabs .nav-link:hover {
+        border-color: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+    }
+
+    .nav-tabs .nav-link.active {
+        background: transparent;
+        border-bottom: 2px solid #0d6efd;
+        color: white;
+        font-weight: 500;
+    }
+</style>

@@ -5,13 +5,14 @@ import threading
 import time
 import os
 from dateutil import parser
-from sattrack import config, tle, calculations
+from sattrack import config, tle, calculations, ssh_manager
 
 app = Flask(__name__)
 Compress(app)  # Enable GZIP compression
 
 # ========== LAZY LOADING STATE ==========
 sat_config = None
+app_settings = None
 all_sats = None
 my_sats = None
 calculator = None
@@ -33,6 +34,15 @@ def ensure_initialized():
         
         print("First request - initializing satellite data...")
         sat_config = config.load_sat_config()
+        app_settings = config.load_settings()
+        if not app_settings:
+            # Defaults
+            app_settings = {
+                'ssh_host': '192.168.1.50',
+                'ssh_user': 'pi',
+                'ssh_password': '',
+                'ssh_enabled': False
+            }
         
         print("Downloading/Loading TLE data...")
         all_sats = tle.get_tle_data()
@@ -119,12 +129,21 @@ def get_status():
 @app.route('/api/config', methods=['GET', 'POST'])
 def handle_config():
     ensure_initialized()
-    global sat_config, my_sats
+    global sat_config, my_sats, app_settings
     if request.method == 'POST':
         data = request.json
         if 'latitude' in data: config.LATITUDE = float(data['latitude'])
         if 'longitude' in data: config.LONGITUDE = float(data['longitude'])
         if 'min_elevation' in data: config.MIN_ELEVATION = float(data['min_elevation'])
+        
+        # Update settings
+        if 'ssh_host' in data: app_settings['ssh_host'] = data['ssh_host']
+        if 'ssh_user' in data: app_settings['ssh_user'] = data['ssh_user']
+        if 'ssh_password' in data: app_settings['ssh_password'] = data['ssh_password']
+        
+        # Save settings
+        config.save_settings(app_settings)
+        
         calculator.reload_observer()
         return jsonify({'status': 'updated'})
     else:
@@ -134,7 +153,8 @@ def handle_config():
             'altitude': config.ALTITUDE_METERS,
             'name': config.LOCATION_NAME,
             'min_elevation': config.MIN_ELEVATION,
-            'satellites': sat_config
+            'satellites': sat_config,
+            'settings': app_settings
         })
 
 @app.route('/api/satellites', methods=['POST'])
@@ -262,6 +282,51 @@ def search_satellites():
             break
     
     return jsonify(results)
+
+@app.route('/api/record', methods=['POST'])
+def record_satellite():
+    ensure_initialized()
+    data = request.json
+    sat_id = data.get('sat_id')
+    
+    if not sat_id or sat_id not in sat_config:
+        return jsonify({'success': False, 'message': 'Satellite config not found'}), 404
+        
+    sat_data = sat_config[sat_id]
+    duration = data.get('duration')
+    
+    # Check if SSH is configured
+    host = app_settings.get('ssh_host')
+    user = app_settings.get('ssh_user')
+    password = app_settings.get('ssh_password')
+    
+    if not host or not user or not password:
+         return jsonify({'success': False, 'message': 'SSH not configured. Please check settings.'}), 400
+
+    # Check if satellite has a command
+    command_template = sat_data.get('ssh_command')
+    if not command_template:
+        # Default template fallback? Or error?
+        # User requested per-satellite custom command.
+        # Use a sensible default if missing?
+        return jsonify({'success': False, 'message': 'No SSH command configured for this satellite.'}), 400
+
+    # Execute
+    mgr = ssh_manager.SSHManager()
+    
+    # Pass duration override
+    if duration:
+        sat_data_exec = sat_data.copy()
+        sat_data_exec['duration'] = str(duration)
+    else:
+        sat_data_exec = sat_data
+        
+    success, msg = mgr.execute_command(host, user, password, command_template, sat_data_exec)
+    
+    if success:
+        return jsonify({'success': True, 'message': msg})
+    else:
+        return jsonify({'success': False, 'message': msg}), 500
 
 if __name__ == '__main__':
     print("Starting GalaxyTrack V3...")

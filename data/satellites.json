@@ -2,81 +2,57 @@
     "25544": {
         "name": "ISS-APRS",
         "transmission_radius_km": 1200,
-        "frequency": "145.825 MHz",
-        "modulation": "",
-        "bandwidth": "",
-        "description": "",
-        "antenna_type": "",
-        "antenna_notes": ""
+        "frequency": "145.825M",
+        "samplerate": "48k",
+        "ssh_command": "timeout {duration} rtl_fm -M fm -f {freq} -s {rate} -g 40 - | sox -t raw -r {rate} -e signed-integer -b 16 -c 1 - /home/pi/{filename}.wav"
     },
     "25984": {
         "name": "ORBCOMM-FM36",
         "transmission_radius_km": 1500,
-        "frequency": "137.560 MHz",
-        "modulation": "",
-        "bandwidth": "",
-        "description": "",
-        "antenna_type": "",
-        "antenna_notes": ""
+        "frequency": "137.560M",
+        "samplerate": "48k",
+        "ssh_command": "timeout {duration} rtl_fm -M fm -f {freq} -s {rate} -g 40 - | sox -t raw -r {rate} -e signed-integer -b 16 -c 1 - /home/pi/{filename}.wav"
     },
     "26931": {
         "name": "PCSAT",
         "transmission_radius_km": 1200,
-        "frequency": "145.825 MHz",
-        "modulation": "",
-        "bandwidth": "",
-        "description": "",
-        "antenna_type": "",
-        "antenna_notes": ""
+        "frequency": "145.825M",
+        "samplerate": "48k",
+        "ssh_command": "timeout {duration} rtl_fm -M fm -f {freq} -s {rate} -g 40 - | sox -t raw -r {rate} -e signed-integer -b 16 -c 1 - /home/pi/{filename}.wav"
     },
     "39444": {
         "name": "FUNCUBE-1",
         "transmission_radius_km": 1200,
-        "frequency": "145.935 MHz",
-        "modulation": "",
-        "bandwidth": "",
-        "description": "",
-        "antenna_type": "",
-        "antenna_notes": ""
+        "frequency": "145.935M",
+        "samplerate": "48k",
+        "ssh_command": "timeout {duration} rtl_fm -M fm -f {freq} -s {rate} -g 40 - | sox -t raw -r {rate} -e signed-integer -b 16 -c 1 - /home/pi/{filename}.wav"
     },
     "40908": {
         "name": "LILACSAT-2",
         "transmission_radius_km": 1200,
-        "frequency": "144.390 MHz",
-        "modulation": "",
-        "bandwidth": "",
-        "description": "",
-        "antenna_type": "",
-        "antenna_notes": ""
+        "frequency": "144.390M",
+        "samplerate": "48k",
+        "ssh_command": "timeout {duration} rtl_fm -M fm -f {freq} -s {rate} -g 40 - | sox -t raw -r {rate} -e signed-integer -b 16 -c 1 - /home/pi/{filename}.wav"
     },
     "57166": {
         "name": "METEOR-M 2-3",
         "transmission_radius_km": 1800,
-        "frequency": "137.900 MHz",
-        "modulation": "",
-        "bandwidth": "",
-        "description": "",
-        "antenna_type": "",
-        "antenna_notes": ""
+        "frequency": "137.9M",
+        "samplerate": "250k",
+        "ssh_command": "timeout {duration} rtl_sdr -f {freq} -s {rate} -g 40 - | sox -t raw -r {rate} -e unsigned-integer -b 8 -c 1 - /home/pi/{filename}.wav"
     },
     "59051": {
         "name": "METEOR-M 2-4",
         "transmission_radius_km": 1800,
-        "frequency": "137.900 MHz",
-        "modulation": "",
-        "bandwidth": "",
-        "description": "",
-        "antenna_type": "",
-        "antenna_notes": ""
+        "frequency": "137.9M",
+        "samplerate": "250k",
+        "ssh_command": "timeout {duration} rtl_sdr -f {freq} -s {rate} -g 40 - | sox -t raw -r {rate} -e unsigned-integer -b 8 -c 1 - /home/pi/{filename}.wav"
     },
     "60089": {
         "name": "SVOM",
         "transmission_radius_km": 1500,
-        "frequency": "137.780 MHz",
-        "modulation": "",
-        "bandwidth": "",
-        "description": "",
-        "antenna_type": "",
-        "antenna_notes": ""
+        "frequency": "137.780M",
+        "samplerate": "250k",
+        "ssh_command": "timeout {duration} rtl_sdr -f {freq} -s {rate} -g 40 - | sox -t raw -r {rate} -e unsigned-integer -b 8 -c 1 - /home/pi/{filename}.wav"
     }
 }

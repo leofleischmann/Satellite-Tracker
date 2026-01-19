@@ -1,0 +1,448 @@
+body,
+html {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: #0f0f12;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+#map {
+    height: 100vh;
+    width: 100vw;
+    z-index: 1;
+}
+
+.glass-panel {
+    background: rgba(18, 18, 24, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+#controls-bar {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    max-width: 95vw;
+    border-radius: 16px;
+    padding: 15px 25px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#sidebar {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 380px;
+    max-height: 85vh;
+    border-radius: 12px;
+    padding: 0;
+    z-index: 1000;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+#sidebar-header {
+    padding: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+#pass-list {
+    overflow-y: auto;
+    padding: 10px;
+    flex-grow: 1;
+}
+
+#config-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 10px 20px;
+    border-radius: 30px;
+    cursor: pointer;
+    z-index: 1000;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+#config-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+#toggle-tracks-btn {
+    position: absolute;
+    bottom: 160px;
+    left: 20px;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
+    font-size: 1.2em;
+}
+
+#toggle-tracks-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#toggle-tracks-btn.active {
+    background: #00d2ff;
+    color: black;
+}
+
+#toggle-names-btn,
+#toggle-radii-btn {
+    position: absolute;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
+    font-size: 1.2em;
+    left: 20px;
+}
+
+#toggle-names-btn {
+    bottom: 220px;
+}
+
+#toggle-radii-btn {
+    bottom: 280px;
+}
+
+#toggle-names-btn:hover,
+#toggle-radii-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#toggle-names-btn.active,
+#toggle-radii-btn.active {
+    background: #00d2ff;
+    color: black;
+}
+
+.pass-item {
+    background: rgba(255, 255, 255, 0.03);
+    margin-bottom: 8px;
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 3px solid #444;
+    transition: all 0.2s;
+}
+
+.pass-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.pass-item.active {
+    border-left-color: #00d2ff;
+    background: rgba(0, 210, 255, 0.1);
+}
+
+.clickable-area {
+    cursor: pointer;
+    flex-grow: 1;
+}
+
+.badge-live {
+    background: #ff3333;
+    color: white;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Controls */
+.control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.time-display {
+    font-variant-numeric: tabular-nums;
+    font-size: 1.4em;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 8px;
+}
+
+.time-display:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.date-display {
+    font-size: 0.9em;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-control {
+    background: transparent;
+    border: none;
+    color: #ccc;
+    font-size: 1.1em;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-control:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.btn-control.primary {
+    background: #00d2ff;
+    color: #000;
+    box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+}
+
+input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    background: transparent;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    background: #00d2ff;
+    cursor: pointer;
+    margin-top: -6px;
+    box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+.speed-pill {
+    display: flex;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    padding: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.speed-opt {
+    padding: 4px 12px;
+    border-radius: 18px;
+    font-size: 0.8em;
+    cursor: pointer;
+    color: #888;
+    transition: all 0.2s;
+}
+
+.speed-opt.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-weight: 600;
+}
+
+#expert-time {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Mobile Toggle Button for Sidebar */
+#mobile-sidebar-toggle {
+    display: none;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1001;
+    font-size: 1.3em;
+}
+
+/* Sidebar collapsed state */
+#sidebar.collapsed #pass-list {
+    display: none;
+}
+
+#sidebar.collapsed {
+    max-height: none;
+}
+
+#sidebar-collapse-btn {
+    display: none;
+}
+
+/* ========== MOBILE RESPONSIVE ========== */
+@media (max-width: 768px) {
+
+    /* Hide settings and toggle buttons on mobile */
+    #config-btn,
+    #toggle-radii-btn {
+        display: none !important;
+    }
+
+    /* Ensure Trajectories and Names buttons are visible on mobile */
+    #toggle-tracks-btn,
+    #toggle-names-btn {
+        display: flex !important;
+        bottom: calc(50vh + 20px) !important;
+        /* Position above the collapsed sidebar */
+    }
+
+    #toggle-tracks-btn {
+        left: 20px !important;
+    }
+
+    #toggle-names-btn {
+        left: 80px !important;
+        /* Next to tracks button */
+        bottom: calc(50vh + 20px) !important;
+    }
+
+    /* Mobile sidebar toggle button */
+    #mobile-sidebar-toggle {
+        display: flex;
+    }
+
+    /* Sidebar collapses to bottom on mobile */
+    #sidebar {
+        position: absolute;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        max-height: 50vh;
+        border-radius: 20px 20px 0 0;
+        transition: transform 0.3s ease;
+    }
+
+    #sidebar.collapsed {
+        transform: translateY(calc(100% - 60px));
+    }
+
+    #sidebar-collapse-btn {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 30px;
+        /* Larger touch target */
+        background: transparent;
+        cursor: grab;
+        z-index: 1002;
+        touch-action: none;
+        /* Critical for dragging */
+    }
+
+    /* Visual indicator centered */
+    #sidebar-collapse-btn::after {
+        content: '';
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 40px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 3px;
+    }
+
+    #sidebar-header {
+        padding-top: 30px;
+        /* Space for handle */
+    }
+
+    /* Simplify controls bar on mobile */
+    #controls-bar {
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        max-width: 100%;
+        transform: none;
+        border-radius: 0;
+        padding: 10px 15px;
+        display: none;
+        /* Hide on mobile - use sidebar instead */
+    }
+
+    /* Mobile time display in sidebar */
+    #mobile-time-display {
+        display: flex !important;
+        /* Keep this to show it on mobile */
+        padding: 15px 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    #mobile-time-display .time-display {
+        font-size: 1.2em;
+    }
+
+    /* Pass list optimization for mobile */
+    #pass-list {
+        max-height: calc(50vh - 120px);
+    }
+
+    .pass-item {
+        padding: 10px;
+    }
+
+    /* Hide form-check on mobile */
+    #sidebar-header .form-check {
+        display: none;
+    }
+}
+
+/* Desktop: hide mobile elements */
+@media (min-width: 769px) {
+    #mobile-time-display {
+        display: none !important;
+    }
+}

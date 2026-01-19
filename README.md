@@ -9,6 +9,7 @@ Echtzeit-Satellitenverfolgung mit interaktiver Weltkarte.
 - ⏱️ **Zeitreise** - Simulation vergangener und zukünftiger Überflüge
 - 📡 **Pass-Vorhersage** - Berechnung wann Satelliten empfangbar sind
 - 🔍 **Satellitensuche** - Durchsuchen der Celestrak-Datenbank
+- **SSH Commands bei Überflug** - Dende custom SSH Befehle an einen Raspberry Pi oder ähnliches wenn ein Satellit sichtbar ist
 
 ## Schnellstart (Docker)
 
