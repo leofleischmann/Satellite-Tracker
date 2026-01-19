@@ -14,6 +14,40 @@ function loadStatus(cb) {
         }
         if (cb) cb();
     });
+});
+}
+
+// Function to test SSH connection
+function testSSH() {
+    let btn = event.currentTarget;
+    let originalHtml = $(btn).html();
+    $(btn).prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i> Testing...');
+
+    let payload = {
+        ssh_host: $('#cfg-ssh-host').val(),
+        ssh_user: $('#cfg-ssh-user').val(),
+        ssh_password: $('#cfg-ssh-pass').val()
+    };
+
+    $.ajax({
+        url: '/api/test_ssh',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(payload),
+        success: function (res) {
+            if (res.success) {
+                alert('Connection Successful!\nOutput: ' + res.message);
+            } else {
+                alert('Connection Failed:\n' + res.message);
+            }
+        },
+        error: function (xhr) {
+            alert('Error: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Unknown error'));
+        },
+        complete: function () {
+            $(btn).prop('disabled', false).html(originalHtml);
+        }
+    });
 }
 
 function loadEphemeris(centerTime, cb) {
@@ -110,11 +144,15 @@ function updateRecordButtons() {
         let jobId = `rec_${satId}_${startTime}`;
 
         if (scheduledPasses.has(jobId)) {
-            $(this).removeClass('btn-outline-danger').addClass('btn-danger pulse-red');
-            $(this).html('<i class="fa-solid fa-stop me-2"></i> CANCEL RECORDING');
+            if (!$(this).hasClass('btn-danger')) {
+                $(this).removeClass('btn-outline-danger').addClass('btn-danger pulse-red');
+                $(this).html('<i class="fa-solid fa-stop me-2"></i> CANCEL RECORDING');
+            }
         } else {
-            $(this).removeClass('btn-danger pulse-red').addClass('btn-outline-danger');
-            $(this).html('<i class="fa-solid fa-circle-dot me-2"></i> RECORD');
+            if ($(this).hasClass('btn-danger')) {
+                $(this).removeClass('btn-danger pulse-red').addClass('btn-outline-danger');
+                $(this).html('<i class="fa-solid fa-circle-dot me-2"></i> RECORD');
+            }
         }
     });
 }

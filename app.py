@@ -373,6 +373,24 @@ def get_scheduled_jobs():
     job_ids = [job.id for job in scheduler.get_jobs()]
     return jsonify({'jobs': job_ids})
 
+@app.route('/api/test_ssh', methods=['POST'])
+def test_ssh():
+    """Test SSH connection with provided credentials."""
+    data = request.json
+    host = data.get('ssh_host')
+    user = data.get('ssh_user')
+    password = data.get('ssh_password')
+    
+    if not host or not user or not password:
+        return jsonify({'success': False, 'message': 'Missing SSH credentials'}), 400
+        
+    cmd = "timeout 3 rtl_sdr -f 137.9M -s 250k -g 40 - | sox -t raw -r 250k -e unsigned-integer -b 8 -c 1 - /home/pi/TEST.wav"
+    
+    mgr = ssh_manager.SSHManager()
+    success, msg = mgr.execute_command(host, user, password, cmd, {})
+    
+    return jsonify({'success': success, 'message': msg})
+
 if __name__ == '__main__':
     print("Starting GalaxyTrack V3...")
     app.run(debug=True, host='0.0.0.0', port=5000)
