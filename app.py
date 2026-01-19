@@ -10,14 +10,48 @@ from sattrack import config, tle, calculations
 app = Flask(__name__)
 Compress(app)  # Enable GZIP compression
 
-# ========== STARTUP INITIALIZATION ==========
-print("Loading satellite configuration...")
-sat_config = config.load_sat_config()
+# ========== LAZY LOADING STATE ==========
+sat_config = None
+all_sats = None
+my_sats = None
+calculator = None
+cached_ephemeris = None
+cached_ephemeris_time = None
+_initialized = False
+_init_lock = threading.Lock()
 
-print("Downloading/Loading TLE data...")
-all_sats = tle.get_tle_data()
-my_sats = tle.filter_satellites(all_sats, sat_config)
-print(f"Tracking {len(my_sats)} satellites")
+def ensure_initialized():
+    """Lazy initialization - loads data on first request."""
+    global sat_config, all_sats, my_sats, calculator, _initialized
+    
+    if _initialized:
+        return
+    
+    with _init_lock:
+        if _initialized:  # Double-check after acquiring lock
+            return
+        
+        print("First request - initializing satellite data...")
+        sat_config = config.load_sat_config()
+        
+        print("Downloading/Loading TLE data...")
+        all_sats = tle.get_tle_data()
+        my_sats = tle.filter_satellites(all_sats, sat_config)
+        print(f"Tracking {len(my_sats)} satellites")
+        
+        enrich_sats()
+        calculator = calculations.OrbitCalculator()
+        
+        print("Pre-calculating ephemeris...")
+        refresh_ephemeris()
+        
+        # Start background TLE refresh thread
+        tle_thread = threading.Thread(target=tle_refresh_thread, daemon=True)
+        tle_thread.start()
+        print("Background TLE refresh thread started")
+        
+        _initialized = True
+        print("Initialization complete!")
 
 # Attach metadata to satellite objects
 def enrich_sats():
@@ -26,14 +60,7 @@ def enrich_sats():
         meta = sat_config.get(sid, {})
         sat.transmission_radius_km = float(meta.get('transmission_radius_km', 1500))
 
-enrich_sats()
-calculator = calculations.OrbitCalculator()
-
 # ========== EPHEMERIS CACHING ==========
-print("Pre-calculating ephemeris (96 hours, 15-second resolution)...")
-cached_ephemeris = None
-cached_ephemeris_time = None
-
 def refresh_ephemeris():
     global cached_ephemeris, cached_ephemeris_time
     now = datetime.datetime.now(datetime.timezone.utc)
@@ -72,13 +99,7 @@ def tle_refresh_thread():
         except Exception as e:
             print(f"Error in TLE refresh thread: {e}")
 
-# Start background TLE refresh thread
-tle_thread = threading.Thread(target=tle_refresh_thread, daemon=True)
-tle_thread.start()
-print("Background TLE refresh thread started (checks every hour)")
-
-refresh_ephemeris()
-print("Server ready!")
+print("Server starting (lazy loading enabled)...")
 
 # ========== ROUTES ==========
 @app.route('/')
@@ -87,15 +108,17 @@ def index():
 
 @app.route('/api/status')
 def get_status():
+    ensure_initialized()
     return jsonify({
         'server_time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'location': { 'lat': config.LATITUDE, 'lon': config.LONGITUDE, 'name': config.LOCATION_NAME },
-        'tracking_count': len(my_sats),
+        'tracking_count': len(my_sats) if my_sats else 0,
         'min_elevation': config.MIN_ELEVATION
     })
 
 @app.route('/api/config', methods=['GET', 'POST'])
 def handle_config():
+    ensure_initialized()
     global sat_config, my_sats
     if request.method == 'POST':
         data = request.json
@@ -116,6 +139,7 @@ def handle_config():
 
 @app.route('/api/satellites', methods=['POST'])
 def update_satellites():
+    ensure_initialized()
     global sat_config, my_sats, cached_ephemeris
     new_config = request.json
     if config.save_sat_config(new_config):
@@ -129,6 +153,7 @@ def update_satellites():
 @app.route('/api/ephemeris')
 def get_ephemeris():
     """Returns ephemeris for client-side interpolation."""
+    ensure_initialized()
     center_time_str = request.args.get('center_time')
     
     if center_time_str:
@@ -152,6 +177,7 @@ def get_ephemeris():
 
 @app.route('/api/passes')
 def get_passes():
+    ensure_initialized()
     time_str = request.args.get('time')
     if time_str:
         start_time = parser.parse(time_str)
@@ -165,6 +191,7 @@ def get_passes():
 @app.route('/api/polar')
 def get_polar_data():
     """Returns Az/El data points for polar plot visualization."""
+    ensure_initialized()
     sat_id = request.args.get('sat_id')
     start_ts = request.args.get('start')
     end_ts = request.args.get('end')
@@ -214,6 +241,7 @@ def get_polar_data():
 @app.route('/api/search')
 def search_satellites():
     """Search for satellites in TLE database by name or NORAD ID."""
+    ensure_initialized()
     query = request.args.get('q', '').strip().lower()
     if len(query) < 2:
         return jsonify([])

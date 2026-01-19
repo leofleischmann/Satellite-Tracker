@@ -101,6 +101,43 @@ function initUI() {
     });
 
     $('#dynamicCalcCheck').on('change', function () { renderPassList(); });
+
+    // Keyboard shortcuts
+    $(document).on('keydown', function (e) {
+        // Ignore if typing in an input field
+        if ($(e.target).is('input, textarea')) return;
+
+        switch (e.key) {
+            case ' ':  // Space - Play/Pause
+                e.preventDefault();
+                togglePlay();
+                break;
+            case 'ArrowLeft':  // Left Arrow - Back 15 min
+                e.preventDefault();
+                offsetTime(-15);
+                break;
+            case 'ArrowRight':  // Right Arrow - Forward 15 min
+                e.preventDefault();
+                offsetTime(15);
+                break;
+            case 'ArrowUp':  // Up Arrow - Forward 60 min
+                e.preventDefault();
+                offsetTime(60);
+                break;
+            case 'ArrowDown':  // Down Arrow - Back 60 min
+                e.preventDefault();
+                offsetTime(-60);
+                break;
+            case 'r':
+            case 'R':  // R - Reset to live
+                resetTime();
+                break;
+            case 't':
+            case 'T':  // T - Toggle all tracks
+                toggleTracks();
+                break;
+        }
+    });
 }
 
 function loadStatus(cb) {
