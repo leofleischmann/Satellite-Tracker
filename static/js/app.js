@@ -139,6 +139,73 @@ function initUI() {
                 break;
         }
     });
+
+    initMobileDrag();
+}
+
+function initMobileDrag() {
+    const sidebar = document.getElementById('sidebar');
+    const handle = document.getElementById('sidebar-collapse-btn');
+    if (!sidebar || !handle) return;
+
+    let startY = 0;
+    let startHeight = 0;
+    let currentHeight = 0;
+    let isDragging = false;
+
+    handle.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        startY = e.touches[0].clientY;
+        startHeight = sidebar.clientHeight;
+        handle.style.cursor = 'grabbing';
+        sidebar.style.transition = 'none'; // Disable transition during drag
+    }, { passive: false });
+
+    document.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault(); // Prevent scrolling
+
+        const deltaY = startY - e.touches[0].clientY; // Drag up = positive delta
+        currentHeight = startHeight + deltaY;
+
+        // Constraints
+        const maxHeight = window.innerHeight * 0.9;
+        const minHeight = 60; // Header height
+
+        if (currentHeight > maxHeight) currentHeight = maxHeight;
+        if (currentHeight < minHeight) currentHeight = minHeight;
+
+        sidebar.style.height = `${currentHeight}px`;
+        sidebar.style.maxHeight = 'none';
+        sidebar.classList.remove('collapsed'); // Ensure content is visible during drag
+        $('#sidebar-chevron').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+    }, { passive: false });
+
+    document.addEventListener('touchend', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        handle.style.cursor = 'grab';
+        sidebar.style.transition = 'height 0.3s ease';
+
+        // Snap logic
+        const screenHeight = window.innerHeight;
+        const snapThreshold = screenHeight * 0.25;
+
+        if (currentHeight < 150) {
+            // Snap to collapsed
+            sidebar.style.height = ''; // Reset inline height
+            sidebar.classList.add('collapsed');
+            $('#sidebar-chevron').removeClass('fa-chevron-down').addClass('fa-chevron-up');
+        } else if (currentHeight > screenHeight * 0.75) {
+            // Snap to full
+            sidebar.style.height = '90vh';
+            $('#sidebar-chevron').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+        } else {
+            // Snap to half or keep current if valid
+            sidebar.style.height = '50vh';
+            $('#sidebar-chevron').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+        }
+    });
 }
 
 function loadStatus(cb) {
