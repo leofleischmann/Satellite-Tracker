@@ -46,7 +46,10 @@ class WebhookManager:
             result = subprocess.run(
                 [
                     'curl',
-                    '--ipv6',  # Force IPv6 - IPv4 has routing issues
+                    '-6',  # Force IPv6 (short flag)
+                    '--retry', '1',  # Retry ONCE on connection failure only
+                    '--retry-connrefused',  # Only retry if connection refused
+                    '--retry-max-time', '5',  # Max 5s for retry attempts
                     '-X', 'POST',
                     '-H', 'Content-Type: application/json',
                     '-d', json_data,
@@ -54,7 +57,7 @@ class WebhookManager:
                     '-w', '%{http_code}',  # Output status code
                     '-o', '/dev/null',  # Discard response body
                     '--connect-timeout', '10',
-                    '--max-time', '30',
+                    '--max-time', '25',
                     url
                 ],
                 capture_output=True,
