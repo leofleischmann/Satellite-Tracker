@@ -1,4 +1,6 @@
 // Global State
+let recordingEnabled = true;
+let webhookUrl = '';
 let map;
 let markers = {};
 let circles = {};

@@ -12,24 +12,26 @@ function loadStatus(cb) {
             }).addTo(map);
             map.panTo([stationLoc.lat, stationLoc.lon]);
         }
+        if (data.recording_enabled !== undefined) {
+            recordingEnabled = data.recording_enabled;
+        }
+
         if (cb) cb();
     });
 }
 
-// Function to test SSH connection
-function testSSH() {
+// Function to test Webhook connection
+function testWebhook() {
     let btn = event.currentTarget;
     let originalHtml = $(btn).html();
     $(btn).prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i> Testing...');
 
     let payload = {
-        ssh_host: $('#cfg-ssh-host').val(),
-        ssh_user: $('#cfg-ssh-user').val(),
-        ssh_password: $('#cfg-ssh-pass').val()
+        webhook_url: $('#cfg-webhook-url').val()
     };
 
     $.ajax({
-        url: '/api/test_ssh',
+        url: '/api/test_webhook',
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(payload),
@@ -90,7 +92,7 @@ function saveConfig() {
                 transmission_radius_km: parseFloat($(this).find('.sat-rad').val()) || 1500,
                 frequency: $(this).find('.sat-freq').val(),
                 samplerate: $(this).find('.sat-rate').val(),
-                ssh_command: $(this).find('.sat-cmd').val()
+                gain: parseInt($(this).find('.sat-gain').val()) || 40
             };
         }
     });
@@ -101,9 +103,8 @@ function saveConfig() {
             name: $('#cfg-name').val(),
             latitude: $('#cfg-lat').val(),
             longitude: $('#cfg-lon').val(),
-            ssh_host: $('#cfg-ssh-host').val(),
-            ssh_user: $('#cfg-ssh-user').val(),
-            ssh_password: $('#cfg-ssh-pass').val()
+            webhook_url: $('#cfg-webhook-url').val(),
+            recording_enabled: $('#cfg-rec-enabled').is(':checked')
         }),
         success: () => {
             $.ajax({

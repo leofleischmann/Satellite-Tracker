@@ -63,39 +63,34 @@
                         </div>
                     </div>
 
+
                     <!-- Recording Tab -->
                     <div class="tab-pane fade" id="recording-pane" role="tabpanel">
                         <div class="card bg-transparent border-secondary">
                             <div class="card-body">
                                 <div class="alert alert-info bg-dark border-info text-info small mb-3">
                                     <i class="fa-solid fa-circle-info me-2"></i>
-                                    Configure the remote Raspberry Pi or server that will execute the RTL-SDR recording
-                                    commands.
-                                    <a href="#" class="text-info fw-bold ms-2" data-bs-toggle="modal"
-                                        data-bs-target="#troubleshootModal">
-                                        <i class="fa-solid fa-life-ring me-1"></i>Verbindungsprobleme?
-                                    </a>
+                                    Configure the Webhook endpoint that will receive recording requests.
                                 </div>
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label text-light small">Host IP</label>
-                                        <input type="text" id="cfg-ssh-host" placeholder="192.168.1.50"
-                                            class="form-control bg-dark text-white border-secondary">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label text-light small">User</label>
-                                        <input type="text" id="cfg-ssh-user" placeholder="pi"
-                                            class="form-control bg-dark text-white border-secondary">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label text-light small">Password</label>
-                                        <input type="password" id="cfg-ssh-pass" placeholder="••••••"
-                                            class="form-control bg-dark text-white border-secondary">
-                                    </div>
+
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="cfg-rec-enabled">
+                                    <label class="form-check-label text-white" for="cfg-rec-enabled">Enable Recording
+                                        Integration</label>
                                 </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label text-light small">Webhook URL</label>
+                                    <input type="text" id="cfg-webhook-url"
+                                        placeholder="http://example.com/api/sdr/record"
+                                        class="form-control bg-dark text-white border-secondary">
+                                    <div class="form-text text-muted">A POST request will be sent to this URL with
+                                        parameters: id, name, freq, rate, gain, duration.</div>
+                                </div>
+
                                 <div class="mt-3 text-end">
-                                    <button class="btn btn-warning" onclick="testSSH()">
-                                        <i class="fa-solid fa-flask me-1"></i> Test Connection
+                                    <button class="btn btn-warning" onclick="testWebhook()">
+                                        <i class="fa-solid fa-flask me-1"></i> Test Webhook
                                     </button>
                                 </div>
                             </div>
@@ -139,6 +134,7 @@
                             </div>
                         </div>
                     </div>
+
                 </div>
 
             </div>

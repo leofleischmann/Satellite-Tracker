@@ -5,7 +5,7 @@ import threading
 import time
 import os
 from dateutil import parser
-from sattrack import config, tle, calculations, ssh_manager
+from sattrack import config, tle, calculations, webhook_manager
 from apscheduler.schedulers.background import BackgroundScheduler
 
 # Scheduler init
@@ -45,10 +45,8 @@ def ensure_initialized():
         if not app_settings:
             # Defaults
             app_settings = {
-                'ssh_host': '192.168.1.50',
-                'ssh_user': 'pi',
-                'ssh_password': '',
-                'ssh_enabled': False
+                'webhook_url': '',
+                'recording_enabled': True
             }
         
         print("Downloading/Loading TLE data...")
@@ -130,7 +128,8 @@ def get_status():
         'server_time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'location': { 'lat': config.LATITUDE, 'lon': config.LONGITUDE, 'name': config.LOCATION_NAME },
         'tracking_count': len(my_sats) if my_sats else 0,
-        'min_elevation': config.MIN_ELEVATION
+        'min_elevation': config.MIN_ELEVATION,
+        'recording_enabled': app_settings.get('recording_enabled', True)
     })
 
 @app.route('/api/config', methods=['GET', 'POST'])
@@ -144,9 +143,8 @@ def handle_config():
         if 'min_elevation' in data: config.MIN_ELEVATION = float(data['min_elevation'])
         
         # Update settings
-        if 'ssh_host' in data: app_settings['ssh_host'] = data['ssh_host']
-        if 'ssh_user' in data: app_settings['ssh_user'] = data['ssh_user']
-        if 'ssh_password' in data: app_settings['ssh_password'] = data['ssh_password']
+        if 'webhook_url' in data: app_settings['webhook_url'] = data['webhook_url']
+        if 'recording_enabled' in data: app_settings['recording_enabled'] = bool(data['recording_enabled'])
         
         # Save settings
         config.save_settings(app_settings)
@@ -293,6 +291,11 @@ def search_satellites():
 @app.route('/api/record', methods=['POST'])
 def record_satellite():
     ensure_initialized()
+    
+    # Check if global recording is enabled
+    if not app_settings.get('recording_enabled', True):
+        return jsonify({'success': False, 'message': 'Recording is disabled in settings.'}), 400
+
     data = request.json
     sat_id = data.get('sat_id')
     
@@ -302,21 +305,11 @@ def record_satellite():
     sat_data = sat_config[sat_id]
     duration = data.get('duration')
     
-    # Check if SSH is configured
-    host = app_settings.get('ssh_host')
-    user = app_settings.get('ssh_user')
-    password = app_settings.get('ssh_password')
+    # Check if Webhook is configured
+    webhook_url = app_settings.get('webhook_url')
     
-    if not host or not user or not password:
-         return jsonify({'success': False, 'message': 'SSH not configured. Please check settings.'}), 400
-
-    # Check if satellite has a command
-    command_template = sat_data.get('ssh_command')
-    if not command_template:
-        # Default template fallback? Or error?
-        # User requested per-satellite custom command.
-        # Use a sensible default if missing?
-        return jsonify({'success': False, 'message': 'No SSH command configured for this satellite.'}), 400
+    if not webhook_url:
+         return jsonify({'success': False, 'message': 'Webhook URL not configured. Please check settings.'}), 400
 
     # Scheduler Logic
     start_ts_ms = data.get('start_time')
@@ -340,7 +333,7 @@ def record_satellite():
                 execute_recording, 
                 'date', 
                 run_date=start_time, 
-                args=[host, user, password, command_template, sat_data, duration],
+                args=[webhook_url, sat_data, duration, sat_id],
                 id=job_id
             )
             scheduled_jobs[job_id] = {
@@ -354,20 +347,35 @@ def record_satellite():
             return jsonify({'success': True, 'message': f'Scheduled for {start_time.strftime("%H:%M:%S")}', 'status': 'scheduled', 'job_id': job_id})
             
     # Immediate execution fallback
-    execute_recording(host, user, password, command_template, sat_data, duration)
+    execute_recording(webhook_url, sat_data, duration, sat_id)
     return jsonify({'success': True, 'message': 'Recording started immediately', 'status': 'started'})
 
-def execute_recording(host, user, password, template, sat_data, duration_override=None):
-    mgr = ssh_manager.SSHManager()
-    if duration_override:
-        sat_data_exec = sat_data.copy()
-        sat_data_exec['duration'] = str(duration_override)
-    else:
-        sat_data_exec = sat_data
+def execute_recording(webhook_url, sat_data, duration, sat_id):
+    mgr = webhook_manager.WebhookManager()
+    
+    name = sat_data.get('name', 'Unknown')
+    freq = sat_data.get('frequency', '0M')
+    rate = sat_data.get('samplerate', '250k')
+    gain = sat_data.get('gain', 40)
+    
+    # Construct filename similar to before
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_name = "".join([c if c.isalnum() or c in '-_' else '_' for c in name])
+    filename = f"{safe_name}_{freq.replace(' ', '')}_{rate}_{timestamp}"
+
+    payload = {
+        'id': sat_id,
+        'name': name,
+        'freq': freq,
+        'rate': rate,
+        'gain': gain,
+        'duration': duration,
+        'timestamp': timestamp,
+        'filename': filename
+    }
         
-    print(f"Executing recording for {sat_data.get('name')}")
-    # Use background=True so the command runs async and SSH returns immediately
-    success, msg = mgr.execute_command(host, user, password, template, sat_data_exec, background=True)
+    print(f"Executing webhook for {name}")
+    success, msg = mgr.send_webhook(webhook_url, payload)
     print(f"Result: {success} - {msg}")
 
 @app.route('/api/scheduled')
@@ -386,23 +394,25 @@ def get_scheduled_jobs():
             })
     return jsonify({'jobs': jobs})
 
-@app.route('/api/test_ssh', methods=['POST'])
-def test_ssh():
-    """Test SSH connection with provided credentials."""
+@app.route('/api/test_webhook', methods=['POST'])
+def test_webhook():
+    """Test Webhook connection with provided URL."""
     data = request.json
-    host = data.get('ssh_host')
-    user = data.get('ssh_user')
-    password = data.get('ssh_password')
+    url = data.get('webhook_url')
     
-    if not host or not user or not password:
-        return jsonify({'success': False, 'message': 'Missing SSH credentials'}), 400
+    if not url:
+        return jsonify({'success': False, 'message': 'Missing Webhook URL'}), 400
         
-    # Simple test command - just check if we can connect and execute
-    cmd = "echo 'SSH connection successful!' && hostname && date"
+    mgr = webhook_manager.WebhookManager()
     
-    mgr = ssh_manager.SSHManager()
-    # Use synchronous execution for test (background=False)
-    success, msg = mgr.execute_command(host, user, password, cmd, {}, background=False)
+    # Simple test payload
+    payload = {
+        'event': 'test',
+        'message': 'Webhook connection successful!', 
+        'timestamp': datetime.datetime.now().isoformat()
+    }
+    
+    success, msg = mgr.send_webhook(url, payload)
     
     return jsonify({'success': success, 'message': msg})
 
