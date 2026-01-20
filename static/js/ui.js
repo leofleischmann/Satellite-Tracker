@@ -178,6 +178,8 @@ function renderPassList() {
 
         let qualityIcon = p.max_el > 45 ? '🟢' : (p.max_el > 20 ? '🟡' : '🔴');
 
+        let safeName = p.name.replace(/'/g, "\\'");
+
         html += `
         <div class="pass-item ${isNow ? 'active' : ''}" onclick="selectSat('${p.sat_id}')">
             <div class="d-flex justify-content-between align-items-center">
@@ -192,7 +194,7 @@ function renderPassList() {
                 <span>${p.min_dist_km}km</span>
             </div>
             <div class="d-flex gap-2 mt-2">
-                <button class="btn btn-sm btn-outline-info flex-grow-1" onclick="event.stopPropagation(); showPolarPlot('${p.sat_id}', ${p.start_time_ms}, ${p.end_time_ms}, '${p.name}')">
+                <button class="btn btn-sm btn-outline-info flex-grow-1" onclick="event.stopPropagation(); showPolarPlot('${p.sat_id}', ${p.start_time_ms}, ${p.end_time_ms}, '${safeName}')">
                     <i class="fa-solid fa-compass"></i> Az/El
                 </button>
                 <button class="btn btn-sm btn-outline-light flex-grow-1" onclick="event.stopPropagation(); jumpTo(${p.start_time_ms}, '${p.sat_id}')">
@@ -203,11 +205,10 @@ function renderPassList() {
             <button class="btn btn-sm btn-outline-danger w-100 mt-2 record-btn" 
                 id="btn-rec-${p.sat_id}-${p.start_time_ms}"
                 data-scheduled="false"
-                onclick="event.stopPropagation(); recordSat('${p.sat_id}', '${p.name.replace(/'/g, "\\'")}', ${durationSec}, ${p.start_time_ms})">
+                onclick="event.stopPropagation(); recordSat('${p.sat_id}', '${safeName}', ${durationSec}, ${p.start_time_ms})">
                 <i class="fa-solid fa-circle-dot me-2"></i> RECORD
             </button>` : ''}
         </div>`;
-        </div > `;
     });
     $('#pass-list').html(html);
     // After rendering, update buttons based on scheduled state
@@ -304,42 +305,42 @@ function renderSatEditor(sats) {
         let rate = s.samplerate || '250k';
 
         html += `
-            < div class="p-3 border-bottom border-secondary sat-row bg-dark bg-opacity-25" >
-                <input type="hidden" class="sat-id" value="${id}">
+        <div class="p-3 border-bottom border-secondary sat-row bg-dark bg-opacity-25">
+            <input type="hidden" class="sat-id" value="${id}">
+            
+            <div class="row g-2 align-items-center mb-2">
+                <!-- ID & Name -->
+                <div class="col-md-1 text-center">
+                    <span class="badge bg-secondary font-monospace" style="font-size: 0.9em;">${id}</span>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted small mb-0 d-none d-md-block">Name</label>
+                    <input class="form-control form-control-sm bg-dark text-white border-secondary sat-name" value="${name}" placeholder="Name">
+                </div>
+                
+                <!-- Params -->
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-0 d-none d-md-block">Freq (MHz)</label>
+                    <input class="form-control form-control-sm bg-dark text-white border-secondary sat-freq" value="${freq}" placeholder="Freq (MHz)">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small mb-0 d-none d-md-block">Rate</label>
+                    <input class="form-control form-control-sm bg-dark text-white border-secondary sat-rate" value="${rate}" placeholder="Rate">
+                </div>
+                <div class="col-md-2">
+                     <label class="form-label text-muted small mb-0 d-none d-md-block">Gain</label>
+                    <input type="number" class="form-control form-control-sm bg-dark text-white border-secondary sat-gain" value="${gain}" placeholder="Gain">
+                </div>
 
-                    <div class="row g-2 align-items-center mb-2">
-                        <!-- ID & Name -->
-                        <div class="col-md-1 text-center">
-                            <span class="badge bg-secondary font-monospace" style="font-size: 0.9em;">${id}</span>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label text-muted small mb-0 d-none d-md-block">Name</label>
-                            <input class="form-control form-control-sm bg-dark text-white border-secondary sat-name" value="${name}" placeholder="Name">
-                        </div>
-
-                        <!-- Params -->
-                        <div class="col-md-2">
-                            <label class="form-label text-muted small mb-0 d-none d-md-block">Freq (MHz)</label>
-                            <input class="form-control form-control-sm bg-dark text-white border-secondary sat-freq" value="${freq}" placeholder="Freq (MHz)">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label text-muted small mb-0 d-none d-md-block">Rate</label>
-                            <input class="form-control form-control-sm bg-dark text-white border-secondary sat-rate" value="${rate}" placeholder="Rate">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label text-muted small mb-0 d-none d-md-block">Gain</label>
-                            <input type="number" class="form-control form-control-sm bg-dark text-white border-secondary sat-gain" value="${gain}" placeholder="Gain">
-                        </div>
-
-                        <!-- Delete -->
-                        <div class="col-md-2 text-end">
-                            <label class="form-label d-block mb-0">&nbsp;</label>
-                            <button class="btn btn-sm btn-outline-danger w-100" onclick="$(this).closest('.sat-row').remove(); updateSatCount();">
-                                <i class="fa-solid fa-trash me-2"></i>Remove
-                            </button>
-                        </div>
-                    </div>
-                </div>`;
+                <!-- Delete -->
+                <div class="col-md-2 text-end">
+                    <label class="form-label d-block mb-0">&nbsp;</label>
+                    <button class="btn btn-sm btn-outline-danger w-100" onclick="$(this).closest('.sat-row').remove(); updateSatCount();">
+                        <i class="fa-solid fa-trash me-2"></i>Remove
+                    </button>
+                </div>
+            </div>
+        </div>`;
     });
     $('#sat-editor-list').html(html);
     updateSatCount();
@@ -347,61 +348,61 @@ function renderSatEditor(sats) {
 
 function addSatRow() {
     let html = `
-                    < div class="p-2 border-bottom border-secondary sat-row" >
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="flex-grow-1">
-                                <input class="form-control form-control-sm bg-dark text-white border-0 sat-id" placeholder="NORAD ID">
-                            </div>
-                            <div class="ms-2 flex-grow-1">
-                                <input class="form-control form-control-sm bg-dark text-white border-0 sat-name" placeholder="Name">
-                            </div>
-                            <div class="ms-2" style="width: 80px;">
-                                <input type="number" class="form-control form-control-sm bg-dark text-white border-0 sat-rad" value="1500" placeholder="km">
-                            </div>
-                            <div class="ms-2" style="width: 100px;">
-                                <input class="form-control form-control-sm bg-dark text-white border-0 sat-freq" placeholder="Freq">
-                            </div>
-                            <div class="ms-2" style="width: 80px;">
-                                <input class="form-control form-control-sm bg-dark text-white border-0 sat-rate" value="250k" placeholder="Rate">
-                            </div>
-                            <div class="ms-2" style="width: 80px;">
-                                <input type="number" class="form-control form-control-sm bg-dark text-white border-0 sat-gain" value="40" placeholder="Gain">
-                            </div>
-                            <button class="btn btn-sm btn-outline-danger ms-2" onclick="$(this).closest('.sat-row').remove(); updateSatCount();">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </div>
-    </div > `;
+    <div class="p-2 border-bottom border-secondary sat-row">
+        <div class="d-flex align-items-center mb-2">
+            <div class="flex-grow-1">
+                <input class="form-control form-control-sm bg-dark text-white border-0 sat-id" placeholder="NORAD ID">
+            </div>
+            <div class="ms-2 flex-grow-1">
+                <input class="form-control form-control-sm bg-dark text-white border-0 sat-name" placeholder="Name">
+            </div>
+            <div class="ms-2" style="width: 80px;">
+                <input type="number" class="form-control form-control-sm bg-dark text-white border-0 sat-rad" value="1500" placeholder="km">
+            </div>
+             <div class="ms-2" style="width: 100px;">
+                <input class="form-control form-control-sm bg-dark text-white border-0 sat-freq" placeholder="Freq">
+            </div>
+             <div class="ms-2" style="width: 80px;">
+                <input class="form-control form-control-sm bg-dark text-white border-0 sat-rate" value="250k" placeholder="Rate">
+            </div>
+             <div class="ms-2" style="width: 80px;">
+                <input type="number" class="form-control form-control-sm bg-dark text-white border-0 sat-gain" value="40" placeholder="Gain">
+            </div>
+            <button class="btn btn-sm btn-outline-danger ms-2" onclick="$(this).closest('.sat-row').remove(); updateSatCount();">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </div>
+    </div>`;
     $('#sat-editor-list').prepend(html);
     updateSatCount();
 }
 
 function addSatFromSearch(noradId, name) {
     let html = `
-            < div class="p-2 border-bottom border-secondary sat-row" >
-                <div class="d-flex align-items-center mb-2">
-                    <input type="hidden" class="sat-id" value="${noradId}">
-                        <div class="flex-grow-1">
-                            <input class="form-control form-control-sm bg-dark text-white border-0 sat-name" value="${name}">
-                                <small class="text-muted">#${noradId}</small>
-                        </div>
-                        <div class="ms-2" style="width: 80px;">
-                            <input type="number" class="form-control form-control-sm bg-dark text-white border-0 sat-rad" value="1500" placeholder="km">
-                        </div>
-                        <div class="ms-2" style="width: 100px;">
-                            <input class="form-control form-control-sm bg-dark text-white border-0 sat-freq" placeholder="Freq">
-                        </div>
-                        <div class="ms-2" style="width: 80px;">
-                            <input class="form-control form-control-sm bg-dark text-white border-0 sat-rate" value="250k" placeholder="Rate">
-                        </div>
-                        <div class="ms-2" style="width: 80px;">
-                            <input type="number" class="form-control form-control-sm bg-dark text-white border-0 sat-gain" value="40" placeholder="Gain">
-                        </div>
-                        <button class="btn btn-sm btn-outline-danger ms-2" onclick="$(this).closest('.sat-row').remove(); updateSatCount();">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                </div>
-    </div > `;
+    <div class="p-2 border-bottom border-secondary sat-row">
+        <div class="d-flex align-items-center mb-2">
+            <input type="hidden" class="sat-id" value="${noradId}">
+            <div class="flex-grow-1">
+                <input class="form-control form-control-sm bg-dark text-white border-0 sat-name" value="${name}">
+                <small class="text-muted">#${noradId}</small>
+            </div>
+            <div class="ms-2" style="width: 80px;">
+                <input type="number" class="form-control form-control-sm bg-dark text-white border-0 sat-rad" value="1500" placeholder="km">
+            </div>
+            <div class="ms-2" style="width: 100px;">
+                <input class="form-control form-control-sm bg-dark text-white border-0 sat-freq" placeholder="Freq">
+            </div>
+             <div class="ms-2" style="width: 80px;">
+                <input class="form-control form-control-sm bg-dark text-white border-0 sat-rate" value="250k" placeholder="Rate">
+            </div>
+             <div class="ms-2" style="width: 80px;">
+                <input type="number" class="form-control form-control-sm bg-dark text-white border-0 sat-gain" value="40" placeholder="Gain">
+            </div>
+            <button class="btn btn-sm btn-outline-danger ms-2" onclick="$(this).closest('.sat-row').remove(); updateSatCount();">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </div>
+    </div>`;
 
     $('#sat-editor-list').prepend(html);
     $('#sat-search').val('');
