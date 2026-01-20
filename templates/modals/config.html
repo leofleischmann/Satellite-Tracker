@@ -6,7 +6,7 @@
                 <div>
                     <h5 class="modal-title text-white mb-1"><i class="fa-solid fa-gear me-2"></i>System Configuration
                     </h5>
-                    <small class="text-muted">Ground Station & Tracked Satellites</small>
+                    <small class="text-info">Ground Station & Tracked Satellites</small>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -23,7 +23,7 @@
                     <li class="nav-item" role="presentation">
                         <button class="nav-link text-white rounded-0 py-3" id="recording-tab" data-bs-toggle="tab"
                             data-bs-target="#recording-pane" type="button" role="tab">
-                            <i class="fa-solid fa-terminal me-2"></i>Recording (SSH)
+                            <i class="fa-solid fa-terminal me-2"></i>Recording (Webhook)
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -44,17 +44,17 @@
                                 <h6 class="text-white mb-3">Ground Station Location</h6>
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label text-light small">Station Name</label>
+                                        <label class="form-label text-info small">Station Name</label>
                                         <input type="text" id="cfg-name"
                                             class="form-control bg-dark text-white border-secondary">
                                     </div>
                                     <div class="col-md-3">
-                                        <label class="form-label text-light small">Latitude</label>
+                                        <label class="form-label text-info small">Latitude</label>
                                         <input type="number" step="0.0001" id="cfg-lat"
                                             class="form-control bg-dark text-white border-secondary">
                                     </div>
                                     <div class="col-md-3">
-                                        <label class="form-label text-light small">Longitude</label>
+                                        <label class="form-label text-info small">Longitude</label>
                                         <input type="number" step="0.0001" id="cfg-lon"
                                             class="form-control bg-dark text-white border-secondary">
                                     </div>
@@ -80,11 +80,11 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label text-light small">Webhook URL</label>
+                                    <label class="form-label text-info small">Webhook URL</label>
                                     <input type="text" id="cfg-webhook-url"
                                         placeholder="http://example.com/api/sdr/record"
                                         class="form-control bg-dark text-white border-secondary">
-                                    <div class="form-text text-muted">A POST request will be sent to this URL with
+                                    <div class="form-text text-light">A POST request will be sent to this URL with
                                         parameters: id, name, freq, rate, gain, duration.</div>
                                 </div>
 
@@ -104,7 +104,7 @@
                         <div class="col-12">
                             <h6 class="text-white mb-3">Add New Satellite</h6>
                             <div class="input-group mb-2">
-                                <span class="input-group-text bg-dark border-secondary text-muted"><i
+                                <span class="input-group-text bg-dark border-secondary text-info"><i
                                         class="fa-solid fa-magnifying-glass"></i></span>
                                 <input type="text" id="sat-search"
                                     class="form-control bg-dark text-white border-secondary"
@@ -112,7 +112,7 @@
                             </div>
                             <div id="search-results" class="border border-secondary rounded p-2 bg-dark"
                                 style="max-height: 150px; overflow-y: auto;">
-                                <div class="text-muted small text-center mt-2">Results will appear here...</div>
+                                <div class="text-info small text-center mt-2">Results will appear here...</div>
                             </div>
                         </div>
 

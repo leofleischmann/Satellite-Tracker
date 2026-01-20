@@ -314,21 +314,21 @@ function renderSatEditor(sats) {
                     <span class="badge bg-secondary font-monospace" style="font-size: 0.9em;">${id}</span>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label text-muted small mb-0 d-none d-md-block">Name</label>
+                    <label class="form-label text-info small mb-0 d-none d-md-block">Name</label>
                     <input class="form-control form-control-sm bg-dark text-white border-secondary sat-name" value="${name}" placeholder="Name">
                 </div>
                 
                 <!-- Params -->
                 <div class="col-md-2">
-                    <label class="form-label text-muted small mb-0 d-none d-md-block">Freq (MHz)</label>
+                    <label class="form-label text-info small mb-0 d-none d-md-block">Freq (MHz)</label>
                     <input class="form-control form-control-sm bg-dark text-white border-secondary sat-freq" value="${freq}" placeholder="Freq (MHz)">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label text-muted small mb-0 d-none d-md-block">Rate</label>
+                    <label class="form-label text-info small mb-0 d-none d-md-block">Rate</label>
                     <input class="form-control form-control-sm bg-dark text-white border-secondary sat-rate" value="${rate}" placeholder="Rate">
                 </div>
                 <div class="col-md-2">
-                     <label class="form-label text-muted small mb-0 d-none d-md-block">Gain</label>
+                     <label class="form-label text-info small mb-0 d-none d-md-block">Gain</label>
                     <input type="number" class="form-control form-control-sm bg-dark text-white border-secondary sat-gain" value="${gain}" placeholder="Gain">
                 </div>
 

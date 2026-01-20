@@ -35,15 +35,25 @@ function testWebhook() {
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(payload),
+        timeout: 70000, // 70 seconds - slightly more than server timeout
         success: function (res) {
             if (res.success) {
-                alert('Connection Successful!\nOutput: ' + res.message);
+                alert('✅ Connection Successful!\n\n' + res.message);
             } else {
-                alert('Connection Failed:\n' + res.message);
+                // Check if it was a read timeout (request may have been processed)
+                if (res.message && res.message.includes('did not respond in time')) {
+                    alert('⚠️ Partial Success:\n\nThe request was sent, but the server took too long to respond.\n\nThis often happens when your webhook (like n8n) processes the request before sending a response.\n\nCheck your webhook to see if the test was received!');
+                } else {
+                    alert('❌ Connection Failed:\n\n' + res.message);
+                }
             }
         },
-        error: function (xhr) {
-            alert('Error: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Unknown error'));
+        error: function (xhr, status, error) {
+            if (status === 'timeout') {
+                alert('⏱️ Timeout:\n\nThe request took too long. Your webhook server may be slow to respond, but the request may still have been received.\n\nCheck your webhook to verify.');
+            } else {
+                alert('❌ Error: ' + (xhr.responseJSON ? xhr.responseJSON.message : error || 'Unknown error'));
+            }
         },
         complete: function () {
             $(btn).prop('disabled', false).html(originalHtml);
