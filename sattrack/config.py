@@ -18,14 +18,10 @@ EARTH_RADIUS_KM = 6371.0
 
 def load_sat_config(filepath=JSON_FILE):
     try:
-        print(f"Loading satellite config from: {os.path.abspath(filepath)}")
         if not os.path.exists(filepath):
-            print(f"File not found: {filepath}")
             return {}
         with open(filepath, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            print(f"Loaded {len(data)} satellites from config")
-            return data
+            return json.load(f)
     except Exception as e:
         print(Fore.RED + f"Error loading config: {e}")
         return {}

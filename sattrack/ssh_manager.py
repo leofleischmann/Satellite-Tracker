@@ -82,48 +82,6 @@ class SSHManager:
             print(f"{Fore.RED}[SSH] Exception: {type(e).__name__}: {e}{Fore.RESET}")
             return False, f"{type(e).__name__}: {e}"
 
-    def execute_local_command(self, command_template, sat_data, background=True):
-        """
-        Executes the command locally on the device running the app.
-        Uses subprocess with nohup for background execution.
-        """
-        try:
-            import subprocess
-            import os
-            
-            # Format command
-            cmd = self._format_command(command_template, sat_data)
-            print(f"{Fore.CYAN}[LOCAL] Executing: {cmd}{Fore.RESET}")
-            
-            if background:
-                # Log file for local execution
-                log_file = f"/tmp/sattrack_local_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-                
-                # Prepare nohup command for local shell
-                # We use subprocess.Popen with shell=True and setsid to detach
-                full_cmd = f"nohup bash -c '{cmd}' > {log_file} 2>&1 &"
-                print(f"{Fore.YELLOW}[LOCAL] Background command: {full_cmd}{Fore.RESET}")
-                print(f"{Fore.CYAN}[LOCAL] Log file: {log_file}{Fore.RESET}")
-                
-                process = subprocess.Popen(full_cmd, shell=True, preexec_fn=os.setsid)
-                
-                print(f"{Fore.GREEN}[LOCAL] Command started (PID: {process.pid}){Fore.RESET}")
-                return True, f"Local recording started! Check {log_file}"
-            else:
-                # Synchronous local execution
-                process = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-                
-                if process.returncode == 0:
-                    print(f"{Fore.GREEN}[LOCAL] Success: {process.stdout}{Fore.RESET}")
-                    return True, process.stdout
-                else:
-                    print(f"{Fore.RED}[LOCAL] Error: {process.stderr}{Fore.RESET}")
-                    return False, process.stderr
-                    
-        except Exception as e:
-            print(f"{Fore.RED}[LOCAL] Exception: {e}{Fore.RESET}")
-            return False, str(e)
-
     def _format_command(self, template, sat_data):
         """
         Substitutes variables into the command template.

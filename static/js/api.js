@@ -80,70 +80,7 @@ function loadEphemeris(centerTime, cb) {
     });
 }
 
-// ========== CONFIGURATION ==========
-
-
-function loadConfig() {
-    $.get('/api/config', function (data) {
-        // Data structure from backend:
-        // { 
-        //   latitude, longitude, name, min_elevation, 
-        //   satellites: {...}, 
-        //   settings: { ssh_host, ssh_user, ... } 
-        // }
-
-        $('#cfg-name').val(data.name);
-        $('#cfg-lat').val(data.latitude);
-        $('#cfg-lon').val(data.longitude);
-
-        let settings = data.settings || {};
-
-        // Handle Execution Mode
-        let mode = settings.execution_mode || 'ssh'; // Default to ssh if missing
-
-        $('#cfg-exec-mode').prop('checked', mode === 'local');
-
-        $('#cfg-ssh-host').val(settings.ssh_host);
-        $('#cfg-ssh-user').val(settings.ssh_user);
-        $('#cfg-ssh-pass').val(settings.ssh_password);
-
-        // Trigger UI update based on mode
-        toggleSSHFields();
-
-        // Pass the already loaded satellites to the editor
-        renderSatellitesConfig(data.satellites);
-    });
-}
-
-function renderSatellitesConfig(sats) {
-    let container = $('#sat-config-list');
-    container.empty();
-
-    // Sort by name
-    let sortedIds = Object.keys(sats).sort((a, b) => sats[a].name.localeCompare(sats[b].name));
-
-    sortedIds.forEach(id => {
-        addSatConfigRow(id, sats[id]);
-    });
-}
-
-
-function toggleSSHFields() {
-    let isLocal = $('#cfg-exec-mode').is(':checked');
-    if (isLocal) {
-        $('#ssh-config-container').hide();
-        $('#btn-test-ssh').hide(); // Hide test button in local mode
-        $('#exec-mode-label').text('Local (Execute on this device)');
-    } else {
-        $('#ssh-config-container').show();
-        $('#btn-test-ssh').show();
-        $('#exec-mode-label').text('Remote via SSH');
-    }
-}
-
 function saveConfig() {
-    let mode = $('#cfg-exec-mode').is(':checked') ? 'local' : 'ssh';
-
     let sats = {};
     $('.sat-row').each(function () {
         let id = $(this).find('.sat-id').val();
@@ -159,76 +96,23 @@ function saveConfig() {
     });
 
     $.ajax({
-        url: '/api/config', // Use the unified config endpoint
-        type: 'POST',
-        contentType: 'application/json',
+        url: '/api/config', type: 'POST', contentType: 'application/json',
         data: JSON.stringify({
-            // General Settings
-            latitude: parseFloat($('#cfg-lat').val()),
-            longitude: parseFloat($('#cfg-lon').val()),
-            // SSH / Execution Settings
+            name: $('#cfg-name').val(),
+            latitude: $('#cfg-lat').val(),
+            longitude: $('#cfg-lon').val(),
             ssh_host: $('#cfg-ssh-host').val(),
             ssh_user: $('#cfg-ssh-user').val(),
-            ssh_password: $('#cfg-ssh-pass').val(),
-            execution_mode: mode
+            ssh_password: $('#cfg-ssh-pass').val()
         }),
-        success: function (res) {
-            // Save Satellites separately or we need to update backend to handle both?
-            // Current backend handle_config only updates settings/location. 
-            // Satellites are handled by /api/satellites
-
+        success: () => {
             $.ajax({
-                url: '/api/satellites',
-                type: 'POST',
-                contentType: 'application/json',
+                url: '/api/satellites', type: 'POST', contentType: 'application/json',
                 data: JSON.stringify(sats),
-                success: function () {
-                    alert('Settings saved!');
-                    location.reload();
-                },
-                error: function (xhr) {
-                    alert('Error saving satellites: ' + xhr.responseText);
-                }
+                success: () => location.reload()
             });
-        },
-        error: function (xhr) {
-            alert('Error saving settings: ' + xhr.responseText);
         }
     });
-}
-
-// Add helper to create rows (was likely missing or defined elsewhere)
-function addSatConfigRow(id, sat) {
-    let container = $('#sat-config-list');
-    let row = `
-        <div class="row mb-2 sat-row align-items-center bg-dark p-2 rounded border border-secondary">
-            <div class="col-md-1 text-center">
-                 <input type="text" class="form-control form-control-sm bg-black text-info border-secondary sat-id" value="${id}" readonly>
-            </div>
-            <div class="col-md-2">
-                <input type="text" class="form-control form-control-sm bg-black text-light border-secondary sat-name" value="${sat.name}" placeholder="Name">
-            </div>
-            <div class="col-md-2">
-                <div class="input-group input-group-sm">
-                    <input type="number" class="form-control bg-black text-light border-secondary sat-rad" value="${sat.transmission_radius_km}" placeholder="Radius">
-                    <span class="input-group-text bg-dark text-muted border-secondary">km</span>
-                </div>
-            </div>
-            <div class="col-md-2">
-                <input type="text" class="form-control form-control-sm bg-black text-light border-secondary sat-freq" value="${sat.frequency || ''}" placeholder="Freq (e.g. 137.1M)">
-            </div>
-             <div class="col-md-2">
-                <input type="text" class="form-control form-control-sm bg-black text-light border-secondary sat-rate" value="${sat.samplerate || ''}" placeholder="Rate (e.g. 48k)">
-            </div>
-             <div class="col-md-1">
-                 <input type="text" class="form-control form-control-sm bg-black text-light border-secondary sat-cmd" value="${sat.ssh_command || ''}" placeholder="Cmd Template">
-            </div>
-            <div class="col-md-1 text-end">
-                <button class="btn btn-sm btn-outline-danger" onclick="$(this).closest('.sat-row').remove()"><i class="fa-solid fa-trash"></i></button>
-            </div>
-        </div>
-    `;
-    container.append(row);
 }
 
 // Global storage for scheduled jobs with time ranges

@@ -70,43 +70,6 @@
                         </div>
                     </div>
 
-                    <!-- Issue 3: Local Execution -->
-                    <div class="accordion-item bg-transparent border-secondary">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed bg-dark text-light" type="button"
-                                data-bs-toggle="collapse" data-bs-target="#flush-collapseThree">
-                                <i class="fa-solid fa-laptop-code me-2 text-info"></i> 3. Lokale Ausführung ("Local
-                                Mode")
-                            </button>
-                        </h2>
-                        <div id="flush-collapseThree" class="accordion-collapse collapse"
-                            data-bs-parent="#troubleshootAccordion">
-                            <div class="accordion-body text-light opacity-75">
-                                <p><strong>Wichtig:</strong> Wenn du den Ausführungsmodus auf <strong>"Local (on
-                                        Device)"</strong> stellst, wird der Befehl direkt auf dem Gerät ausgeführt, auf
-                                    dem diese App läuft.</p>
-
-                                <p><strong>Achtung bei Docker:</strong> Die lokale Ausführung funktioniert normalerweise
-                                    <strong>NICHT</strong>, wenn Sattrack in einem Docker-Container läuft.</p>
-                                <ul>
-                                    <li>Der Container hat keinen Zugriff auf USB-Geräte (RTL-SDR), es sei denn, sie
-                                        werden explizit durchgereicht.</li>
-                                    <li>Befehle und Pfade (z.B. <code>rtl_fm</code>, <code>/home/pi/...</code>)
-                                        existieren im Container oft nicht.</li>
-                                </ul>
-
-                                <p><strong>Empfohlene Nutzung für lokalen Modus:</strong></p>
-                                <p>Führe Sattrack <strong>nativ</strong> (ohne Docker) auf dem Raspberry Pi aus:</p>
-                                <div class="bg-black p-2 rounded mb-2 font-monospace border border-secondary small">
-                                    git clone &lt;repo&gt;<br>
-                                    pip3 install -r requirements.txt<br>
-                                    sudo apt install rtl-sdr sox libsox-fmt-mp3<br>
-                                    python3 app.py
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
             <div class="modal-footer border-secondary">
