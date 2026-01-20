@@ -147,6 +147,7 @@ def handle_config():
         if 'ssh_host' in data: app_settings['ssh_host'] = data['ssh_host']
         if 'ssh_user' in data: app_settings['ssh_user'] = data['ssh_user']
         if 'ssh_password' in data: app_settings['ssh_password'] = data['ssh_password']
+        if 'execution_mode' in data: app_settings['execution_mode'] = data['execution_mode']
         
         # Save settings
         config.save_settings(app_settings)

@@ -28,8 +28,9 @@ function install_deps() {
     fi
 
     # Venv Setup
-    echo -e "\n${YELLOW}[2/3] Setting up Python Virtual Environment...${NC}"
+    echo -e "\n${YELLOW}[2/3] Checking Python Virtual Environment...${NC}"
     if [ ! -d "$VENV_DIR" ]; then
+        echo "Creating virtual environment at ./$VENV_DIR ..."
         python3 -m venv $VENV_DIR
         echo "Virtual environment created."
     else
@@ -38,8 +39,15 @@ function install_deps() {
 
     # Python Deps
     echo -e "\n${YELLOW}[3/3] Installing Python Packages (inside venv)...${NC}"
-    ./$VENV_DIR/bin/pip install --upgrade pip
-    ./$VENV_DIR/bin/pip install -r requirements.txt
+    
+    # Ensure pip is installed/upgraded
+    if [ -f "$VENV_DIR/bin/pip" ]; then
+        ./$VENV_DIR/bin/pip install --upgrade pip
+        ./$VENV_DIR/bin/pip install -r requirements.txt
+    else
+        echo -e "${RED}Error: pip not found in $VENV_DIR/bin/pip. Venv creation failed?${NC}"
+        exit 1
+    fi
     
     echo -e "${GREEN}Installation Complete!${NC}"
 }
@@ -55,6 +63,13 @@ function start_server() {
     fi
 
     echo -e "${GREEN}Starting Sattrack Server in background...${NC}"
+    
+    if [ ! -f "./$VENV_DIR/bin/python" ]; then
+        echo -e "${RED}Error: Virtual environment python not found at ./$VENV_DIR/bin/python${NC}"
+        echo -e "Please run '${YELLOW}./manage_server.sh install${NC}' first."
+        return
+    fi
+    
     # Run using venv python, redirect logs, save PID
     nohup ./$VENV_DIR/bin/python app.py > "$LOG_FILE" 2>&1 &
     

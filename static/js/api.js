@@ -82,30 +82,51 @@ function loadEphemeris(centerTime, cb) {
 
 // ========== CONFIGURATION ==========
 
+
 function loadConfig() {
-    $.get('/api/settings', function (data) {
-        $('#cfg-name').val(data.station_name);
-        $('#cfg-lat').val(data.location.lat);
-        $('#cfg-lon').val(data.location.lon);
+    $.get('/api/config', function (data) {
+        // Data structure from backend:
+        // { 
+        //   latitude, longitude, name, min_elevation, 
+        //   satellites: {...}, 
+        //   settings: { ssh_host, ssh_user, ... } 
+        // }
+
+        $('#cfg-name').val(data.name);
+        $('#cfg-lat').val(data.latitude);
+        $('#cfg-lon').val(data.longitude);
+
+        let settings = data.settings || {};
 
         // Handle Execution Mode
-        // stored as 'local' or 'ssh' (defaulting to 'ssh' if undefined)
-        let mode = data.execution_mode || 'ssh';
+        let mode = settings.execution_mode || 'ssh'; // Default to ssh if missing
 
-        // UI uses a checkbox: Checked = Local, Unchecked = SSH
         $('#cfg-exec-mode').prop('checked', mode === 'local');
 
-        $('#cfg-ssh-host').val(data.ssh_host);
-        $('#cfg-ssh-user').val(data.ssh_user);
-        $('#cfg-ssh-pass').val(data.ssh_password);
+        $('#cfg-ssh-host').val(settings.ssh_host);
+        $('#cfg-ssh-user').val(settings.ssh_user);
+        $('#cfg-ssh-pass').val(settings.ssh_password);
 
         // Trigger UI update based on mode
         toggleSSHFields();
 
-        // Also load satellites config for the editor
-        loadSatellitesConfig();
+        // Pass the already loaded satellites to the editor
+        renderSatellitesConfig(data.satellites);
     });
 }
+
+function renderSatellitesConfig(sats) {
+    let container = $('#sat-config-list');
+    container.empty();
+
+    // Sort by name
+    let sortedIds = Object.keys(sats).sort((a, b) => sats[a].name.localeCompare(sats[b].name));
+
+    sortedIds.forEach(id => {
+        addSatConfigRow(id, sats[id]);
+    });
+}
+
 
 function toggleSSHFields() {
     let isLocal = $('#cfg-exec-mode').is(':checked');
@@ -138,27 +159,76 @@ function saveConfig() {
     });
 
     $.ajax({
-        url: '/api/settings',
+        url: '/api/config', // Use the unified config endpoint
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({
-            station_name: $('#cfg-name').val(),
-            lat: parseFloat($('#cfg-lat').val()),
-            lon: parseFloat($('#cfg-lon').val()),
-            execution_mode: mode,
+            // General Settings
+            latitude: parseFloat($('#cfg-lat').val()),
+            longitude: parseFloat($('#cfg-lon').val()),
+            // SSH / Execution Settings
             ssh_host: $('#cfg-ssh-host').val(),
             ssh_user: $('#cfg-ssh-user').val(),
             ssh_password: $('#cfg-ssh-pass').val(),
-            satellites: sats
+            execution_mode: mode
         }),
         success: function (res) {
-            alert('Settings saved!');
-            location.reload();
+            // Save Satellites separately or we need to update backend to handle both?
+            // Current backend handle_config only updates settings/location. 
+            // Satellites are handled by /api/satellites
+
+            $.ajax({
+                url: '/api/satellites',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(sats),
+                success: function () {
+                    alert('Settings saved!');
+                    location.reload();
+                },
+                error: function (xhr) {
+                    alert('Error saving satellites: ' + xhr.responseText);
+                }
+            });
         },
         error: function (xhr) {
             alert('Error saving settings: ' + xhr.responseText);
         }
     });
+}
+
+// Add helper to create rows (was likely missing or defined elsewhere)
+function addSatConfigRow(id, sat) {
+    let container = $('#sat-config-list');
+    let row = `
+        <div class="row mb-2 sat-row align-items-center bg-dark p-2 rounded border border-secondary">
+            <div class="col-md-1 text-center">
+                 <input type="text" class="form-control form-control-sm bg-black text-info border-secondary sat-id" value="${id}" readonly>
+            </div>
+            <div class="col-md-2">
+                <input type="text" class="form-control form-control-sm bg-black text-light border-secondary sat-name" value="${sat.name}" placeholder="Name">
+            </div>
+            <div class="col-md-2">
+                <div class="input-group input-group-sm">
+                    <input type="number" class="form-control bg-black text-light border-secondary sat-rad" value="${sat.transmission_radius_km}" placeholder="Radius">
+                    <span class="input-group-text bg-dark text-muted border-secondary">km</span>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <input type="text" class="form-control form-control-sm bg-black text-light border-secondary sat-freq" value="${sat.frequency || ''}" placeholder="Freq (e.g. 137.1M)">
+            </div>
+             <div class="col-md-2">
+                <input type="text" class="form-control form-control-sm bg-black text-light border-secondary sat-rate" value="${sat.samplerate || ''}" placeholder="Rate (e.g. 48k)">
+            </div>
+             <div class="col-md-1">
+                 <input type="text" class="form-control form-control-sm bg-black text-light border-secondary sat-cmd" value="${sat.ssh_command || ''}" placeholder="Cmd Template">
+            </div>
+            <div class="col-md-1 text-end">
+                <button class="btn btn-sm btn-outline-danger" onclick="$(this).closest('.sat-row').remove()"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        </div>
+    `;
+    container.append(row);
 }
 
 // Global storage for scheduled jobs with time ranges
