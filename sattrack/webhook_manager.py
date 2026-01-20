@@ -31,70 +31,63 @@ class WebhookManager:
         return self._send_request(url, payload)
 
     def _send_request(self, url, payload):
-        """Send webhook using curl subprocess with retry logic."""
+        """Send webhook using curl subprocess - single attempt, no retries to prevent duplicates."""
         # Add timestamp if not present
         if 'timestamp' not in payload:
             payload['timestamp'] = datetime.now().isoformat()
 
         json_data = json.dumps(payload)
-        max_retries = 2  # Max 2 attempts to stay within frontend timeout
         
-        for attempt in range(max_retries):
-            try:
-                print(f"{Fore.CYAN}[Webhook] Sending to {url} (attempt {attempt + 1}/{max_retries})...{Fore.RESET}")
-                
-                # Force IPv6 since IPv4 routing is broken on this server
-                result = subprocess.run(
-                    [
-                        'curl',
-                        '--ipv6',  # Force IPv6 - IPv4 has routing issues
-                        '-X', 'POST',
-                        '-H', 'Content-Type: application/json',
-                        '-d', json_data,
-                        '-s',  # Silent mode
-                        '-w', '%{http_code}',  # Output status code
-                        '-o', '/dev/null',  # Discard response body
-                        '--connect-timeout', '10',
-                        '--max-time', '20',  # 20s max per attempt
-                        url
-                    ],
-                    capture_output=True,
-                    text=True,
-                    timeout=25  # Python timeout slightly higher
-                )
-                
-                status_code = result.stdout.strip()
-                
-                if result.returncode == 0 and status_code.startswith('2'):
-                    print(f"{Fore.GREEN}[Webhook] Success: {status_code}{Fore.RESET}")
-                    return True, f"Webhook sent successfully (Status: {status_code})"
-                elif result.returncode == 0 and status_code != '000':
-                    print(f"{Fore.RED}[Webhook] Failed: {status_code}{Fore.RESET}")
-                    return False, f"Webhook failed with status {status_code}"
-                else:
-                    # Connection failed (code 000) or curl error - retry
-                    error_msg = result.stderr.strip() or f"curl returned {result.returncode}"
-                    print(f"{Fore.YELLOW}[Webhook] Attempt {attempt + 1} failed: {error_msg}{Fore.RESET}")
-                    if attempt < max_retries - 1:
-                        import time
-                        time.sleep(1)  # Wait 1 second before retry
-                        continue
-                    return False, f"Connection error after {max_retries} attempts: {error_msg}"
+        try:
+            print(f"{Fore.CYAN}[Webhook] Sending to {url}...{Fore.RESET}")
+            
+            # Force IPv6 since IPv4 routing is broken on this server
+            # Single attempt - no retries to prevent duplicate webhook deliveries
+            result = subprocess.run(
+                [
+                    'curl',
+                    '--ipv6',  # Force IPv6 - IPv4 has routing issues
+                    '-X', 'POST',
+                    '-H', 'Content-Type: application/json',
+                    '-d', json_data,
+                    '-s',  # Silent mode
+                    '-w', '%{http_code}',  # Output status code
+                    '-o', '/dev/null',  # Discard response body
+                    '--connect-timeout', '10',
+                    '--max-time', '30',
+                    url
+                ],
+                capture_output=True,
+                text=True,
+                timeout=35
+            )
+            
+            status_code = result.stdout.strip()
+            
+            if result.returncode == 0 and status_code.startswith('2'):
+                print(f"{Fore.GREEN}[Webhook] Success: {status_code}{Fore.RESET}")
+                return True, f"Webhook sent successfully (Status: {status_code})"
+            elif result.returncode == 0 and status_code != '000':
+                print(f"{Fore.RED}[Webhook] Failed: {status_code}{Fore.RESET}")
+                return False, f"Webhook failed with status {status_code}"
+            elif result.returncode == 28:
+                # Timeout - request MAY have been sent, don't retry to avoid duplicates
+                print(f"{Fore.YELLOW}[Webhook] Timeout - request may have been delivered{Fore.RESET}")
+                return False, "Timeout - check if webhook was received"
+            else:
+                error_msg = result.stderr.strip() or f"curl returned {result.returncode}"
+                print(f"{Fore.RED}[Webhook] Error: {error_msg}{Fore.RESET}")
+                return False, f"Connection error: {error_msg}"
 
-            except subprocess.TimeoutExpired:
-                msg = f"Request timed out after {self.timeout}s"
-                print(f"{Fore.YELLOW}[Webhook] {msg}{Fore.RESET}")
-                if attempt < max_retries - 1:
-                    continue
-                return False, msg
-            except FileNotFoundError:
-                print(f"{Fore.YELLOW}[Webhook] curl not found, using requests...{Fore.RESET}")
-                return self._send_with_requests(url, payload)
-            except Exception as e:
-                print(f"{Fore.RED}[Webhook] Error: {e}{Fore.RESET}")
-                return False, f"Webhook error: {str(e)}"
-        
-        return False, "All retry attempts failed"
+        except subprocess.TimeoutExpired:
+            print(f"{Fore.YELLOW}[Webhook] Timeout{Fore.RESET}")
+            return False, "Request timed out - check if webhook was received"
+        except FileNotFoundError:
+            print(f"{Fore.YELLOW}[Webhook] curl not found, using requests...{Fore.RESET}")
+            return self._send_with_requests(url, payload)
+        except Exception as e:
+            print(f"{Fore.RED}[Webhook] Error: {e}{Fore.RESET}")
+            return False, f"Webhook error: {str(e)}"
 
     def _send_with_requests(self, url, payload):
         """Fallback to requests library if curl is not available."""
