@@ -1,6 +1,5 @@
 import json
 import subprocess
-import uuid
 from datetime import datetime
 from colorama import Fore
 import threading
@@ -32,11 +31,7 @@ class WebhookManager:
         return self._send_request(url, payload)
 
     def _send_request(self, url, payload):
-        """Send webhook using curl subprocess with unique request_id for deduplication."""
-        # Add unique request_id for server-side deduplication
-        if 'request_id' not in payload:
-            payload['request_id'] = str(uuid.uuid4())
-        
+        """Send webhook using curl subprocess - single attempt, no retries to prevent duplicates."""
         # Add timestamp if not present
         if 'timestamp' not in payload:
             payload['timestamp'] = datetime.now().isoformat()
@@ -47,14 +42,11 @@ class WebhookManager:
             print(f"{Fore.CYAN}[Webhook] Sending to {url}...{Fore.RESET}")
             
             # Force IPv6 since IPv4 routing is broken on this server
-            # Aggressive retries are safe because request_id enables deduplication
+            # Single attempt - no retries to prevent duplicate webhook deliveries
             result = subprocess.run(
                 [
                     'curl',
-                    '-6',  # Force IPv6
-                    '--retry', '3',  # Retry up to 3 times
-                    '--retry-all-errors',  # Retry on all errors including timeouts
-                    '--retry-delay', '2',  # 2 seconds between retries
+                    '--ipv6',  # Force IPv6 - IPv4 has routing issues
                     '-X', 'POST',
                     '-H', 'Content-Type: application/json',
                     '-d', json_data,
@@ -62,7 +54,7 @@ class WebhookManager:
                     '-w', '%{http_code}',  # Output status code
                     '-o', '/dev/null',  # Discard response body
                     '--connect-timeout', '10',
-                    '--max-time', '25',
+                    '--max-time', '30',
                     url
                 ],
                 capture_output=True,
