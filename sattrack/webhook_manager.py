@@ -43,10 +43,13 @@ class WebhookManager:
             try:
                 print(f"{Fore.CYAN}[Webhook] Sending to {url} (attempt {attempt + 1}/{max_retries})...{Fore.RESET}")
                 
-                # Note: removed -6 flag, let curl choose best protocol
+                # Force IPv6 since IPv4 routing is broken on this server
                 result = subprocess.run(
                     [
                         'curl',
+                        '--ipv6',  # Force IPv6 - IPv4 has routing issues
+                        '--retry', '2',  # curl's built-in retry
+                        '--retry-delay', '1',
                         '-X', 'POST',
                         '-H', 'Content-Type: application/json',
                         '-d', json_data,
@@ -59,7 +62,7 @@ class WebhookManager:
                     ],
                     capture_output=True,
                     text=True,
-                    timeout=self.timeout + 5
+                    timeout=self.timeout + 10
                 )
                 
                 status_code = result.stdout.strip()
