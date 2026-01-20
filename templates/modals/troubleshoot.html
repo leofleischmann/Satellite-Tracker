@@ -34,7 +34,8 @@
                                         class="fa-solid fa-circle-info me-1"></i><strong>Dauerhafte Lösung:</strong>
                                     Damit das nach einem Neustart bleibt, muss dies in die Netzwerkkonfiguration (z. B.
                                     <code>/etc/dhcpcd.conf</code> oder ein Crontab-<code>@reboot</code>-Skript)
-                                    eingetragen werden.</p>
+                                    eingetragen werden.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -56,7 +57,8 @@
                                     die Frage im Skript nicht siehst, wartet der Befehl ewig.</p>
                                 <p><strong>Lösung:</strong> Der einmalige manuelle "Handschlag". Durch das manuelle
                                     Verbinden wird der kryptografische Fingerprint des Pi in der Datei
-                                    <code>~/.ssh/known_hosts</code> auf deinem Server gespeichert.</p>
+                                    <code>~/.ssh/known_hosts</code> auf deinem Server gespeichert.
+                                </p>
                                 <div class="bg-black p-2 rounded mb-2 font-monospace border border-secondary">
                                     ssh pi@192.168.2.101<br>
                                     <span class="text-secondary"># -> mit 'yes' bestätigen</span>
@@ -64,6 +66,43 @@
                                 <p class="small text-muted mb-0"><strong>Alternative:</strong> Man kann im Befehl die
                                     Prüfung abschalten: <code>ssh -o StrictHostKeyChecking=no ...</code>. Das manuelle
                                     Bestätigen ist jedoch der sicherere Weg.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Issue 3: Local Execution -->
+                    <div class="accordion-item bg-transparent border-secondary">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed bg-dark text-light" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#flush-collapseThree">
+                                <i class="fa-solid fa-laptop-code me-2 text-info"></i> 3. Lokale Ausführung ("Local
+                                Mode")
+                            </button>
+                        </h2>
+                        <div id="flush-collapseThree" class="accordion-collapse collapse"
+                            data-bs-parent="#troubleshootAccordion">
+                            <div class="accordion-body text-light opacity-75">
+                                <p><strong>Wichtig:</strong> Wenn du den Ausführungsmodus auf <strong>"Local (on
+                                        Device)"</strong> stellst, wird der Befehl direkt auf dem Gerät ausgeführt, auf
+                                    dem diese App läuft.</p>
+
+                                <p><strong>Achtung bei Docker:</strong> Die lokale Ausführung funktioniert normalerweise
+                                    <strong>NICHT</strong>, wenn Sattrack in einem Docker-Container läuft.</p>
+                                <ul>
+                                    <li>Der Container hat keinen Zugriff auf USB-Geräte (RTL-SDR), es sei denn, sie
+                                        werden explizit durchgereicht.</li>
+                                    <li>Befehle und Pfade (z.B. <code>rtl_fm</code>, <code>/home/pi/...</code>)
+                                        existieren im Container oft nicht.</li>
+                                </ul>
+
+                                <p><strong>Empfohlene Nutzung für lokalen Modus:</strong></p>
+                                <p>Führe Sattrack <strong>nativ</strong> (ohne Docker) auf dem Raspberry Pi aus:</p>
+                                <div class="bg-black p-2 rounded mb-2 font-monospace border border-secondary small">
+                                    git clone &lt;repo&gt;<br>
+                                    pip3 install -r requirements.txt<br>
+                                    sudo apt install rtl-sdr sox libsox-fmt-mp3<br>
+                                    python3 app.py
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -80,7 +80,49 @@ function loadEphemeris(centerTime, cb) {
     });
 }
 
+// ========== CONFIGURATION ==========
+
+function loadConfig() {
+    $.get('/api/settings', function (data) {
+        $('#cfg-name').val(data.station_name);
+        $('#cfg-lat').val(data.location.lat);
+        $('#cfg-lon').val(data.location.lon);
+
+        // Handle Execution Mode
+        // stored as 'local' or 'ssh' (defaulting to 'ssh' if undefined)
+        let mode = data.execution_mode || 'ssh';
+
+        // UI uses a checkbox: Checked = Local, Unchecked = SSH
+        $('#cfg-exec-mode').prop('checked', mode === 'local');
+
+        $('#cfg-ssh-host').val(data.ssh_host);
+        $('#cfg-ssh-user').val(data.ssh_user);
+        $('#cfg-ssh-pass').val(data.ssh_password);
+
+        // Trigger UI update based on mode
+        toggleSSHFields();
+
+        // Also load satellites config for the editor
+        loadSatellitesConfig();
+    });
+}
+
+function toggleSSHFields() {
+    let isLocal = $('#cfg-exec-mode').is(':checked');
+    if (isLocal) {
+        $('#ssh-config-container').hide();
+        $('#btn-test-ssh').hide(); // Hide test button in local mode
+        $('#exec-mode-label').text('Local (Execute on this device)');
+    } else {
+        $('#ssh-config-container').show();
+        $('#btn-test-ssh').show();
+        $('#exec-mode-label').text('Remote via SSH');
+    }
+}
+
 function saveConfig() {
+    let mode = $('#cfg-exec-mode').is(':checked') ? 'local' : 'ssh';
+
     let sats = {};
     $('.sat-row').each(function () {
         let id = $(this).find('.sat-id').val();
@@ -96,21 +138,25 @@ function saveConfig() {
     });
 
     $.ajax({
-        url: '/api/config', type: 'POST', contentType: 'application/json',
+        url: '/api/settings',
+        type: 'POST',
+        contentType: 'application/json',
         data: JSON.stringify({
-            name: $('#cfg-name').val(),
-            latitude: $('#cfg-lat').val(),
-            longitude: $('#cfg-lon').val(),
+            station_name: $('#cfg-name').val(),
+            lat: parseFloat($('#cfg-lat').val()),
+            lon: parseFloat($('#cfg-lon').val()),
+            execution_mode: mode,
             ssh_host: $('#cfg-ssh-host').val(),
             ssh_user: $('#cfg-ssh-user').val(),
-            ssh_password: $('#cfg-ssh-pass').val()
+            ssh_password: $('#cfg-ssh-pass').val(),
+            satellites: sats
         }),
-        success: () => {
-            $.ajax({
-                url: '/api/satellites', type: 'POST', contentType: 'application/json',
-                data: JSON.stringify(sats),
-                success: () => location.reload()
-            });
+        success: function (res) {
+            alert('Settings saved!');
+            location.reload();
+        },
+        error: function (xhr) {
+            alert('Error saving settings: ' + xhr.responseText);
         }
     });
 }

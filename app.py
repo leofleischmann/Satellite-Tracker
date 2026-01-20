@@ -302,21 +302,22 @@ def record_satellite():
     sat_data = sat_config[sat_id]
     duration = data.get('duration')
     
-    # Check if SSH is configured
+    # Check execution mode
+    execution_mode = app_settings.get('execution_mode', 'ssh')
+    
     host = app_settings.get('ssh_host')
     user = app_settings.get('ssh_user')
     password = app_settings.get('ssh_password')
     
-    if not host or not user or not password:
-         return jsonify({'success': False, 'message': 'SSH not configured. Please check settings.'}), 400
+    # Validation based on mode
+    if execution_mode == 'ssh':
+        if not host or not user or not password:
+             return jsonify({'success': False, 'message': 'SSH not configured. Please check settings.'}), 400
 
     # Check if satellite has a command
     command_template = sat_data.get('ssh_command')
     if not command_template:
-        # Default template fallback? Or error?
-        # User requested per-satellite custom command.
-        # Use a sensible default if missing?
-        return jsonify({'success': False, 'message': 'No SSH command configured for this satellite.'}), 400
+        return jsonify({'success': False, 'message': 'No recording command configured for this satellite.'}), 400
 
     # Scheduler Logic
     start_ts_ms = data.get('start_time')
@@ -340,7 +341,7 @@ def record_satellite():
                 execute_recording, 
                 'date', 
                 run_date=start_time, 
-                args=[host, user, password, command_template, sat_data, duration],
+                args=[execution_mode, host, user, password, command_template, sat_data, duration],
                 id=job_id
             )
             scheduled_jobs[job_id] = {
@@ -354,20 +355,27 @@ def record_satellite():
             return jsonify({'success': True, 'message': f'Scheduled for {start_time.strftime("%H:%M:%S")}', 'status': 'scheduled', 'job_id': job_id})
             
     # Immediate execution fallback
-    execute_recording(host, user, password, command_template, sat_data, duration)
+    execute_recording(execution_mode, host, user, password, command_template, sat_data, duration)
     return jsonify({'success': True, 'message': 'Recording started immediately', 'status': 'started'})
 
-def execute_recording(host, user, password, template, sat_data, duration_override=None):
+def execute_recording(mode, host, user, password, template, sat_data, duration_override=None):
     mgr = ssh_manager.SSHManager()
+    
     if duration_override:
         sat_data_exec = sat_data.copy()
         sat_data_exec['duration'] = str(duration_override)
     else:
         sat_data_exec = sat_data
         
-    print(f"Executing recording for {sat_data.get('name')}")
-    # Use background=True so the command runs async and SSH returns immediately
-    success, msg = mgr.execute_command(host, user, password, template, sat_data_exec, background=True)
+    print(f"Executing recording for {sat_data.get('name')} (Mode: {mode})")
+    
+    if mode == 'local':
+        # Execute locally using subprocess
+        success, msg = mgr.execute_local_command(template, sat_data_exec, background=True)
+    else:
+        # Execute via SSH
+        success, msg = mgr.execute_command(host, user, password, template, sat_data_exec, background=True)
+        
     print(f"Result: {success} - {msg}")
 
 @app.route('/api/scheduled')
