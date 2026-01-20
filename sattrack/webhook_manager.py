@@ -37,7 +37,7 @@ class WebhookManager:
             payload['timestamp'] = datetime.now().isoformat()
 
         json_data = json.dumps(payload)
-        max_retries = 3
+        max_retries = 2  # Max 2 attempts to stay within frontend timeout
         
         for attempt in range(max_retries):
             try:
@@ -48,21 +48,19 @@ class WebhookManager:
                     [
                         'curl',
                         '--ipv6',  # Force IPv6 - IPv4 has routing issues
-                        '--retry', '2',  # curl's built-in retry
-                        '--retry-delay', '1',
                         '-X', 'POST',
                         '-H', 'Content-Type: application/json',
                         '-d', json_data,
                         '-s',  # Silent mode
                         '-w', '%{http_code}',  # Output status code
                         '-o', '/dev/null',  # Discard response body
-                        '--connect-timeout', '15',
-                        '--max-time', str(self.timeout),
+                        '--connect-timeout', '10',
+                        '--max-time', '20',  # 20s max per attempt
                         url
                     ],
                     capture_output=True,
                     text=True,
-                    timeout=self.timeout + 10
+                    timeout=25  # Python timeout slightly higher
                 )
                 
                 status_code = result.stdout.strip()
