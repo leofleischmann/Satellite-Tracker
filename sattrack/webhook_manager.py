@@ -22,7 +22,7 @@ class WebhookManager:
                 payload['timestamp'] = datetime.now().isoformat()
 
             headers = {'Content-Type': 'application/json'}
-            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            response = requests.post(url, json=payload, headers=headers, timeout=30)
             
             if response.status_code >= 200 and response.status_code < 300:
                 print(f"{Fore.GREEN}[Webhook] Success: {response.status_code}{Fore.RESET}")
