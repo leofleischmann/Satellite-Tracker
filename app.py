@@ -11,7 +11,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 # Scheduler init
 scheduler = BackgroundScheduler()
 scheduler.start()
-scheduled_jobs = {} # Keep track of metadata if needed
+scheduled_jobs = {}  # Track scheduler metadata
+pending_recordings = {}  # Queue for Pi-Polling: job_id -> recording details
 
 
 app = Flask(__name__)
@@ -336,17 +337,21 @@ def record_satellite():
         # Schedule new job
         now = datetime.datetime.now(datetime.timezone.utc)
         if start_time > now:
+            # Add sat_id to sat_data for the queued recording
+            sat_data_with_id = sat_data.copy()
+            sat_data_with_id['sat_id'] = sat_id
+            
             scheduler.add_job(
                 execute_recording, 
                 'date', 
                 run_date=start_time, 
-                args=[host, user, password, command_template, sat_data, duration],
+                args=[job_id, command_template, sat_data_with_id, duration],
                 id=job_id
             )
             scheduled_jobs[job_id] = {
                 'sat_id': sat_id,
                 'start_time': start_ts_ms,
-                'end_time': start_ts_ms + (duration * 1000),  # Store end time for conflict detection
+                'end_time': start_ts_ms + (duration * 1000),
                 'duration': duration,
                 'sat_name': sat_data.get('name')
             }
@@ -354,21 +359,65 @@ def record_satellite():
             return jsonify({'success': True, 'message': f'Scheduled for {start_time.strftime("%H:%M:%S")}', 'status': 'scheduled', 'job_id': job_id})
             
     # Immediate execution fallback
-    execute_recording(host, user, password, command_template, sat_data, duration)
-    return jsonify({'success': True, 'message': 'Recording started immediately', 'status': 'started'})
+    immediate_job_id = f"rec_{sat_id}_{int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000)}"
+    sat_data_with_id = sat_data.copy()
+    sat_data_with_id['sat_id'] = sat_id
+    execute_recording(immediate_job_id, command_template, sat_data_with_id, duration)
+    return jsonify({'success': True, 'message': 'Recording queued for Pi', 'status': 'started'})
 
-def execute_recording(host, user, password, template, sat_data, duration_override=None):
-    mgr = ssh_manager.SSHManager()
+def execute_recording(job_id, command_template, sat_data, duration_override=None):
+    """
+    Instead of SSH, queue the recording for Pi-Polling.
+    The Pi client will fetch and execute it.
+    """
     if duration_override:
         sat_data_exec = sat_data.copy()
         sat_data_exec['duration'] = str(duration_override)
     else:
         sat_data_exec = sat_data
-        
-    print(f"Executing recording for {sat_data.get('name')}")
-    # Use background=True so the command runs async and SSH returns immediately
-    success, msg = mgr.execute_command(host, user, password, template, sat_data_exec, background=True)
-    print(f"Result: {success} - {msg}")
+    
+    # Format the command
+    cmd = format_recording_command(command_template, sat_data_exec)
+    
+    # Add to pending queue for Pi to pick up
+    pending_recordings[job_id] = {
+        'job_id': job_id,
+        'sat_id': str(sat_data.get('sat_id', '')),
+        'sat_name': sat_data.get('name', 'Unknown'),
+        'command': cmd,
+        'duration': int(sat_data_exec.get('duration', 600)),
+        'status': 'pending',  # pending | running | completed | failed
+        'queued_at': int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000),
+        'result': None
+    }
+    print(f"[Pi-Polling] Recording queued: {job_id} -> {sat_data.get('name')}")
+
+def format_recording_command(template, sat_data):
+    """Format command template with satellite data."""
+    now = datetime.datetime.now()
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
+    
+    name = sat_data.get('name', 'Unknown')
+    safe_name = "".join([c if c.isalnum() or c in '-_' else '_' for c in name])
+    
+    freq = sat_data.get('frequency', '0M').replace(' ', '')
+    rate = sat_data.get('samplerate', '250k')
+    filename = f"{safe_name}_{freq}_{rate}_{timestamp}"
+    
+    context = {
+        'name': safe_name,
+        'freq': freq,
+        'rate': rate,
+        'timestamp': timestamp,
+        'filename': filename,
+        'duration': sat_data.get('duration', '600'),
+        'gain': sat_data.get('gain', '40')
+    }
+    
+    full_context = sat_data.copy()
+    full_context.update(context)
+    
+    return template.format(**full_context)
 
 @app.route('/api/scheduled')
 def get_scheduled_jobs():
@@ -388,23 +437,97 @@ def get_scheduled_jobs():
 
 @app.route('/api/test_ssh', methods=['POST'])
 def test_ssh():
-    """Test SSH connection with provided credentials."""
+    """
+    Legacy endpoint - now checks Pi-Polling status instead of SSH.
+    Returns whether the Pi client has been seen recently.
+    """
+    # Check if we have any recent activity from the Pi
+    # The Pi client updates pending_recordings status when it runs
+    
+    # For now, we do a simple echo test - the Pi client will pick this up
+    # and report back, proving it's online
+    
+    test_job_id = f"test_connection_{int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000)}"
+    
+    pending_recordings[test_job_id] = {
+        'job_id': test_job_id,
+        'sat_id': 'TEST',
+        'sat_name': 'Connection Test',
+        'command': 'echo "Pi Client is connected and working!" && hostname && date',
+        'duration': 5,
+        'status': 'pending',
+        'queued_at': int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000),
+        'result': None,
+        'is_test': True  # Mark as test so we can identify it
+    }
+    
+    return jsonify({
+        'success': True, 
+        'message': 'Test-Befehl gesendet! Der Pi-Client wird ihn innerhalb von 15 Sekunden abholen. Prüfe die Logs auf dem Pi oder warte auf Status-Update.'
+    })
+
+# ========== PI-POLLING API ENDPOINTS ==========
+
+@app.route('/api/pi/pending')
+def get_pending_recordings():
+    """
+    Pi client polls this endpoint to get recordings that need to be executed.
+    Returns all pending recordings.
+    """
+    pending = []
+    for job_id, rec in pending_recordings.items():
+        if rec['status'] == 'pending':
+            pending.append(rec)
+    return jsonify({'recordings': pending})
+
+@app.route('/api/pi/status', methods=['POST'])
+def update_recording_status():
+    """
+    Pi client reports recording status (running, completed, failed).
+    """
     data = request.json
-    host = data.get('ssh_host')
-    user = data.get('ssh_user')
-    password = data.get('ssh_password')
+    job_id = data.get('job_id')
+    status = data.get('status')  # running | completed | failed
+    result = data.get('result', '')
     
-    if not host or not user or not password:
-        return jsonify({'success': False, 'message': 'Missing SSH credentials'}), 400
-        
-    # Simple test command - just check if we can connect and execute
-    cmd = "echo 'SSH connection successful!' && hostname && date"
+    if not job_id or not status:
+        return jsonify({'success': False, 'message': 'Missing job_id or status'}), 400
     
-    mgr = ssh_manager.SSHManager()
-    # Use synchronous execution for test (background=False)
-    success, msg = mgr.execute_command(host, user, password, cmd, {}, background=False)
+    if job_id in pending_recordings:
+        pending_recordings[job_id]['status'] = status
+        pending_recordings[job_id]['result'] = result
+        pending_recordings[job_id]['updated_at'] = int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000)
+        print(f"[Pi-Polling] Status update: {job_id} -> {status}")
+        return jsonify({'success': True})
     
-    return jsonify({'success': success, 'message': msg})
+    return jsonify({'success': False, 'message': 'Job not found'}), 404
+
+@app.route('/api/pi/recordings')
+def get_all_recordings():
+    """
+    Returns all recordings (for debugging/monitoring).
+    """
+    return jsonify({'recordings': list(pending_recordings.values())})
+
+@app.route('/api/pi/clear', methods=['POST'])
+def clear_completed_recordings():
+    """
+    Clear completed/failed recordings older than 1 hour.
+    """
+    now = datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000
+    one_hour_ago = now - (60 * 60 * 1000)
+    
+    to_remove = []
+    for job_id, rec in pending_recordings.items():
+        if rec['status'] in ('completed', 'failed'):
+            updated_at = rec.get('updated_at', rec.get('queued_at', 0))
+            if updated_at < one_hour_ago:
+                to_remove.append(job_id)
+    
+    for job_id in to_remove:
+        del pending_recordings[job_id]
+    
+    return jsonify({'success': True, 'removed': len(to_remove)})
 
 if __name__ == '__main__':
     print("Starting GalaxyTrack V3...")

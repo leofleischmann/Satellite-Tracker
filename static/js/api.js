@@ -305,3 +305,30 @@ function searchSatellites(query) {
         });
     }, 300);
 }
+
+// Pi-Polling Connection Test
+function testPiConnection() {
+    let statusDisplay = $('#pi-status-display');
+    statusDisplay.html('<i class="fa-solid fa-spinner fa-spin me-1"></i> Sende Test-Befehl...');
+
+    $.ajax({
+        url: '/api/test_ssh',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({}),
+        success: function (res) {
+            if (res.success) {
+                statusDisplay.html('<i class="fa-solid fa-check text-success me-1"></i> ' + res.message);
+                statusDisplay.removeClass('text-warning text-danger').addClass('text-success');
+            } else {
+                statusDisplay.html('<i class="fa-solid fa-xmark text-danger me-1"></i> ' + res.message);
+                statusDisplay.removeClass('text-warning text-success').addClass('text-danger');
+            }
+        },
+        error: function (xhr) {
+            let msg = xhr.responseJSON ? xhr.responseJSON.message : 'Verbindungsfehler';
+            statusDisplay.html('<i class="fa-solid fa-xmark me-1"></i> ' + msg);
+            statusDisplay.removeClass('text-warning text-success').addClass('text-danger');
+        }
+    });
+}

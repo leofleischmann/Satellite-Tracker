@@ -1,0 +1,14 @@
+[Unit]
+Description=SatTrack Recording Client
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/sattrack_client
+ExecStart=/usr/bin/python3 /home/pi/sattrack_client/sattrack_client.py --server http://YOUR_SERVER_IP:5000 --interval 15
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
