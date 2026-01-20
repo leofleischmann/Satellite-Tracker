@@ -415,5 +415,6 @@ def test_ssh():
     return jsonify({'success': success, 'message': msg})
 
 if __name__ == '__main__':
-    print("Starting GalaxyTrack V3...")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    print("Starting GalaxyTrack V3 on IPv6/IPv4...")
+    # Listen on '::' to support both IPv6 and IPv4 (Dual Stack)
+    app.run(debug=True, host='::', port=5000)
