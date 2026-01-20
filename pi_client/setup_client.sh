@@ -48,12 +48,7 @@ if [ "$CONFIRM" != "j" ] && [ "$CONFIRM" != "J" ] && [ "$CONFIRM" != "y" ] && [ 
 fi
 
 echo ""
-echo -e "${BLUE}[1/5] Installiere Python-Dependencies...${NC}"
-pip3 install --user requests >/dev/null 2>&1 || pip3 install requests
-echo -e "${GREEN}✓ Dependencies installiert${NC}"
-
-echo ""
-echo -e "${BLUE}[2/5] Erstelle Installationsverzeichnis...${NC}"
+echo -e "${BLUE}[1/5] Erstelle Installationsverzeichnis...${NC}"
 INSTALL_DIR="$HOME/sattrack_client"
 mkdir -p "$INSTALL_DIR"
 
@@ -64,6 +59,23 @@ if [ -f "$SCRIPT_DIR/sattrack_client.py" ]; then
     cp "$SCRIPT_DIR/requirements.txt" "$INSTALL_DIR/" 2>/dev/null || true
 fi
 echo -e "${GREEN}✓ Verzeichnis erstellt: $INSTALL_DIR${NC}"
+
+echo ""
+echo -e "${BLUE}[2/5] Erstelle Python Virtual Environment...${NC}"
+cd "$INSTALL_DIR"
+
+# Create venv if it doesn't exist
+if [ ! -d "venv" ]; then
+    python3 -m venv venv
+fi
+
+# Activate and install
+source venv/bin/activate
+pip install --upgrade pip >/dev/null 2>&1
+pip install requests >/dev/null 2>&1
+deactivate
+
+echo -e "${GREEN}✓ Virtual Environment erstellt und Dependencies installiert${NC}"
 
 echo ""
 echo -e "${BLUE}[3/5] Erstelle systemd Service...${NC}"
@@ -79,7 +91,7 @@ After=network.target
 Type=simple
 User=$USER
 WorkingDirectory=$INSTALL_DIR
-ExecStart=/usr/bin/python3 $INSTALL_DIR/sattrack_client.py --server $SERVER_URL --interval 15
+ExecStart=$INSTALL_DIR/venv/bin/python $INSTALL_DIR/sattrack_client.py --server $SERVER_URL --interval 15
 Restart=always
 RestartSec=10
 Environment=PYTHONUNBUFFERED=1
